@@ -10,6 +10,12 @@ website and iPhone app use, so there's one shared source of content.
 Newest first. Each entry says what changed and why, so you can review progress here
 without reading code.
 
+### 2026-08-01 — Bottom navigation bar
+- Added the bottom navigation bar matching the website: Home, Explore, Pathways, Speakers,
+  Profile, with matching icons and the active tab shown in green.
+- Home is the working screen; Explore, Pathways, Speakers, and Profile show a tidy
+  "Coming soon" placeholder for now and will be built out later.
+
 ### 2026-08-01 — Filter and sort row (the "video/list filter")
 - Added the filter/sort row below the topic pills, matching the website:
   - **All / Series / Videos** filter — switch between showing everything, only series, or
@@ -87,6 +93,8 @@ without reading code.
 What works right now:
 - App launches and fetches the live lecture catalog from the website.
 - A sticky top header (logo, streak, sign-in, settings, menu) — currently visual only.
+- A bottom navigation bar (Home / Explore / Pathways / Speakers / Profile); Home works, the
+  rest are "Coming soon" placeholders.
 - A designed home page: hero header, topic filter pills, and cards for both series (with
   episode counts) and standalone lectures (with durations), matching the website's style.
 - Topic filtering (tap a pill to narrow the feed).
@@ -94,9 +102,10 @@ What works right now:
 - Light and dark mode, matching the iPhone app's colours.
 - Handles the loading and error cases.
 
-Not built yet: tapping a card to open it, the "Hide watched" toggle, the bottom navigation
-bar, search, speaker browsing, saved items, watch history, notes, account sign-in, offline
-downloads. The header buttons are placeholders until their features exist.
+Not built yet: tapping a card to open it, the "Hide watched" toggle, the Explore /
+Pathways / Speakers / Profile screens, search, saved items, watch history, notes, account
+sign-in, offline downloads. The header buttons and those four tabs are placeholders until
+their features exist.
 
 ## Run locally
 
