@@ -10,6 +10,24 @@ website and iPhone app use, so there's one shared source of content.
 Newest first. Each entry says what changed and why, so you can review progress here
 without reading code.
 
+### 2026-08-01 — Match the website: top header and card style
+- Added the sticky **top header bar** to match the mobile website: the "Improving
+  Muslim" logo, a streak flame icon, a "Sign in" button, a settings gear, and the
+  hamburger menu. These buttons are **visual placeholders for now** — sign-in, settings,
+  streak, and the menu don't do anything yet; they'll be wired up when those features are
+  built.
+- Reworked the home feed to match the website's card style:
+  - **Series** now show as a single card with an episode count (e.g. "9 Episodes"),
+    instead of every episode appearing separately.
+  - **Standalone lectures** show as their own cards with a duration (e.g. "1:01:43").
+  - Category labels (e.g. "SERIES · FIQH, RIGHTEOUS PREDECESSORS") are now shown in
+    rose/pink, matching the website.
+- Not added yet (noted for a later day): the "Hide watched / Sort by" filter row, and the
+  bottom navigation bar (Home / Explore / Pathways / Speakers / Profile). The hero header
+  ("Learn Islam. Live it better.") is kept from the iPhone app even though the website
+  doesn't show it on mobile — easy to remove later if you'd prefer to match the website
+  exactly.
+
 ### 2026-08-01 — Home page design and polish
 - Gave the home page its real look, matching the iPhone app's identity:
   - A hero header ("Learn Islam. Live it better.") with the serif editorial heading.
@@ -52,15 +70,17 @@ without reading code.
 
 What works right now:
 - App launches and fetches the live lecture catalog from the website.
-- A designed home page: hero header, topic filter pills, and lecture cards with thumbnails,
-  duration badges, series/episode labels, titles, and speakers.
+- A sticky top header (logo, streak, sign-in, settings, menu) — currently visual only.
+- A designed home page: hero header, topic filter pills, and cards for both series (with
+  episode counts) and standalone lectures (with durations), matching the website's style.
 - Topic filtering (tap a pill to narrow the feed).
 - Light and dark mode, matching the iPhone app's colours.
 - Handles the loading and error cases.
 
-Not built yet: tapping a card to play the video, search, speaker browsing, saved items,
-watch history, notes, account sign-in, offline downloads. These will be added in upcoming
-slices, following the same order the iPhone app used.
+Not built yet: tapping a card to open it, the "Hide watched / Sort by" filter row, the
+bottom navigation bar, search, speaker browsing, saved items, watch history, notes,
+account sign-in, offline downloads. The header buttons are placeholders until their
+features exist.
 
 ## Run locally
 

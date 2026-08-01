@@ -101,40 +101,70 @@ data class StandaloneLecture(
     val isAvailable: Boolean get() = videoURL != null
 }
 
-sealed class LectureItem {
+/**
+ * One card in the home feed. Mirrors the website: a whole series shows as a single
+ * card with an episode count, while a standalone lecture shows with its duration.
+ */
+sealed class HomeFeedItem {
     abstract val id: String
     abstract val title: String
     abstract val speaker: String
-    abstract val context: String
     abstract val thumbnailURL: String?
-    abstract val duration: Int?
     abstract val categories: List<String>
+    /** e.g. "SERIES · SEERAH, PROPHETS" or "LECTURE · QURAN". */
+    abstract val categoryLabel: String
+    /** Bottom-right badge: episode count for a series, duration for a lecture. */
+    abstract val badge: String?
 
-    data class FromEpisode(val series: LectureSeries, val episode: Episode) : LectureItem() {
-        override val id: String = "episode:${series.id}:${episode.id}"
-        override val title: String = episode.title
+    data class SeriesItem(
+        val series: LectureSeries,
+        override val categoryLabel: String,
+    ) : HomeFeedItem() {
+        override val id: String = "series:${series.id}"
+        override val title: String = series.title
         override val speaker: String = series.speaker
-        override val context: String = "${series.title} · Episode ${episode.number}"
-        override val thumbnailURL: String? = episode.thumbnailURL
-        override val duration: Int? = episode.duration
+        override val thumbnailURL: String? = series.thumbnailURL
         override val categories: List<String> = series.categories
+        override val badge: String =
+            if (series.episodeCount == 1) "1 Episode" else "${series.episodeCount} Episodes"
     }
 
-    data class FromStandalone(val lecture: StandaloneLecture) : LectureItem() {
-        override val id: String = "standalone:${lecture.id}"
+    data class LectureItem(
+        val lecture: StandaloneLecture,
+        override val categoryLabel: String,
+    ) : HomeFeedItem() {
+        override val id: String = "lecture:${lecture.id}"
         override val title: String = lecture.title
         override val speaker: String = lecture.speaker
-        override val context: String = lecture.topic ?: lecture.typeLabel
         override val thumbnailURL: String? = lecture.thumbnailURL
-        override val duration: Int? = lecture.duration
         override val categories: List<String> = lecture.categories
+        override val badge: String? = lecture.duration?.let { formatDuration(it) }
     }
 }
 
-fun Catalog.playableItems(): List<LectureItem> {
-    val episodes = series.flatMap { s ->
-        s.episodes.filter { it.isAvailable }.map { LectureItem.FromEpisode(s, it) }
+fun Catalog.homeFeed(): List<HomeFeedItem> {
+    val topicName = topics.associate { it.id to it.name }
+    fun label(type: String, cats: List<String>): String {
+        val names = cats.mapNotNull { topicName[it] }.joinToString(", ") { it.uppercase() }
+        return if (names.isEmpty()) type else "$type · $names"
     }
-    val standalone = standaloneLectures.filter { it.isAvailable }.map { LectureItem.FromStandalone(it) }
-    return episodes + standalone
+
+    val seriesItems = series.map {
+        HomeFeedItem.SeriesItem(it, label("SERIES", it.categories))
+    }
+    val lectureItems = standaloneLectures.filter { it.isAvailable }.map {
+        HomeFeedItem.LectureItem(it, label("LECTURE", it.categories))
+    }
+    return seriesItems + lectureItems
+}
+
+fun formatDuration(seconds: Int): String {
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    val remaining = seconds % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, remaining)
+    } else {
+        "%d:%02d".format(minutes, remaining)
+    }
 }

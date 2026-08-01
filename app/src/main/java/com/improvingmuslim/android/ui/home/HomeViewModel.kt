@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.improvingmuslim.android.data.CatalogRepository
 import com.improvingmuslim.android.model.Catalog
-import com.improvingmuslim.android.model.LectureItem
+import com.improvingmuslim.android.model.HomeFeedItem
 import com.improvingmuslim.android.model.Topic
-import com.improvingmuslim.android.model.playableItems
+import com.improvingmuslim.android.model.homeFeed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +19,7 @@ sealed interface HomeUiState {
     data class Ready(
         val topics: List<Topic>,
         val selectedTopicId: String?,
-        val items: List<LectureItem>,
+        val items: List<HomeFeedItem>,
     ) : HomeUiState {
         val selectedTopicName: String? = topics.firstOrNull { it.id == selectedTopicId }?.name
     }
@@ -34,7 +34,7 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private var catalog: Catalog? = null
-    private var discoveryOrder: List<LectureItem> = emptyList()
+    private var discoveryOrder: List<HomeFeedItem> = emptyList()
     private var selectedTopicId: String? = null
 
     init {
@@ -48,7 +48,7 @@ class HomeViewModel(
                 val loaded = repository.fetchCatalog()
                 catalog = loaded
                 // Shuffle once per load so the feed feels fresh but stays stable while browsing.
-                discoveryOrder = loaded.playableItems().shuffled()
+                discoveryOrder = loaded.homeFeed().shuffled()
                 selectedTopicId = null
                 emitReady()
             } catch (e: Exception) {

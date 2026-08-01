@@ -26,9 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.improvingmuslim.android.model.Topic
-import com.improvingmuslim.android.ui.components.LectureCard
+import com.improvingmuslim.android.ui.components.FeedCard
+import com.improvingmuslim.android.ui.components.TopHeader
 import com.improvingmuslim.android.ui.components.TopicPill
 import com.improvingmuslim.android.ui.theme.Brand
 
@@ -37,11 +40,15 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
     val uiState by viewModel.uiState.collectAsState()
     val brand = Brand.colors
 
-    Box(modifier = modifier.fillMaxSize().background(brand.background)) {
-        when (val state = uiState) {
-            is HomeUiState.Loading -> LoadingState()
-            is HomeUiState.Error -> ErrorState(state.message, onRetry = viewModel::loadCatalog)
-            is HomeUiState.Ready -> ReadyState(state, onSelectTopic = viewModel::selectTopic)
+    Column(modifier = modifier.fillMaxSize().background(brand.background)) {
+        TopHeader()
+        HorizontalDivider(color = brand.line)
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (val state = uiState) {
+                is HomeUiState.Loading -> LoadingState()
+                is HomeUiState.Error -> ErrorState(state.message, onRetry = viewModel::loadCatalog)
+                is HomeUiState.Ready -> ReadyState(state, onSelectTopic = viewModel::selectTopic)
+            }
         }
     }
 }
@@ -107,7 +114,7 @@ private fun ReadyState(state: HomeUiState.Ready, onSelectTopic: (String?) -> Uni
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "${state.items.size} lectures",
+                    text = "${state.items.size} results",
                     color = brand.muted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -116,7 +123,7 @@ private fun ReadyState(state: HomeUiState.Ready, onSelectTopic: (String?) -> Uni
         }
 
         items(state.items, key = { it.id }) { item ->
-            LectureCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
+            FeedCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
         }
     }
 }

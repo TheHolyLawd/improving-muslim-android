@@ -21,11 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.improvingmuslim.android.model.LectureItem
+import com.improvingmuslim.android.model.HomeFeedItem
 import com.improvingmuslim.android.ui.theme.Brand
 
 @Composable
-fun LectureCard(item: LectureItem, modifier: Modifier = Modifier) {
+fun FeedCard(item: HomeFeedItem, modifier: Modifier = Modifier) {
     val brand = Brand.colors
     val cardShape = RoundedCornerShape(8.dp)
 
@@ -36,7 +36,7 @@ fun LectureCard(item: LectureItem, modifier: Modifier = Modifier) {
             .border(1.dp, brand.line, cardShape)
             .clearAndSetSemantics {
                 contentDescription =
-                    "${item.title}, ${item.context}, by ${item.speaker}"
+                    "${item.title}, ${item.categoryLabel}, by ${item.speaker}"
             },
         color = brand.strongSurface,
         shape = cardShape,
@@ -53,9 +53,9 @@ fun LectureCard(item: LectureItem, modifier: Modifier = Modifier) {
                     url = item.thumbnailURL,
                     modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
                 )
-                item.duration?.let { duration ->
+                item.badge?.let { badge ->
                     Text(
-                        text = durationLabel(duration),
+                        text = badge,
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -74,8 +74,8 @@ fun LectureCard(item: LectureItem, modifier: Modifier = Modifier) {
                     .padding(13.dp),
             ) {
                 Text(
-                    text = item.context.uppercase(),
-                    color = brand.accent,
+                    text = item.categoryLabel,
+                    color = brand.rose,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -98,16 +98,5 @@ fun LectureCard(item: LectureItem, modifier: Modifier = Modifier) {
                 )
             }
         }
-    }
-}
-
-private fun durationLabel(seconds: Int): String {
-    val hours = seconds / 3600
-    val minutes = (seconds % 3600) / 60
-    val remaining = seconds % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, remaining)
-    } else {
-        "%d:%02d".format(minutes, remaining)
     }
 }
