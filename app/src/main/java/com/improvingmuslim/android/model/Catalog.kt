@@ -108,6 +108,7 @@ sealed class LectureItem {
     abstract val context: String
     abstract val thumbnailURL: String?
     abstract val duration: Int?
+    abstract val categories: List<String>
 
     data class FromEpisode(val series: LectureSeries, val episode: Episode) : LectureItem() {
         override val id: String = "episode:${series.id}:${episode.id}"
@@ -116,6 +117,7 @@ sealed class LectureItem {
         override val context: String = "${series.title} · Episode ${episode.number}"
         override val thumbnailURL: String? = episode.thumbnailURL
         override val duration: Int? = episode.duration
+        override val categories: List<String> = series.categories
     }
 
     data class FromStandalone(val lecture: StandaloneLecture) : LectureItem() {
@@ -125,6 +127,7 @@ sealed class LectureItem {
         override val context: String = lecture.topic ?: lecture.typeLabel
         override val thumbnailURL: String? = lecture.thumbnailURL
         override val duration: Int? = lecture.duration
+        override val categories: List<String> = lecture.categories
     }
 }
 

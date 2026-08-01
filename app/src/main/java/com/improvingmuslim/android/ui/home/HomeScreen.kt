@@ -1,77 +1,179 @@
 package com.improvingmuslim.android.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.improvingmuslim.android.model.LectureItem
+import com.improvingmuslim.android.model.Topic
+import com.improvingmuslim.android.ui.components.LectureCard
+import com.improvingmuslim.android.ui.components.TopicPill
+import com.improvingmuslim.android.ui.theme.Brand
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val brand = Brand.colors
 
-    when (val state = uiState) {
-        is HomeUiState.Loading -> LoadingState(modifier)
-        is HomeUiState.Error -> ErrorState(state.message, onRetry = viewModel::loadCatalog, modifier = modifier)
-        is HomeUiState.Ready -> LectureList(state.items, modifier)
-    }
-}
-
-@Composable
-private fun LoadingState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(message)
-            Button(onClick = onRetry) { Text("Try again") }
+    Box(modifier = modifier.fillMaxSize().background(brand.background)) {
+        when (val state = uiState) {
+            is HomeUiState.Loading -> LoadingState()
+            is HomeUiState.Error -> ErrorState(state.message, onRetry = viewModel::loadCatalog)
+            is HomeUiState.Ready -> ReadyState(state, onSelectTopic = viewModel::selectTopic)
         }
     }
 }
 
 @Composable
-private fun LectureList(items: List<LectureItem>, modifier: Modifier = Modifier) {
-    LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(items, key = { it.id }) { item ->
-            LectureRow(item)
-            HorizontalDivider()
+private fun LoadingState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = Brand.colors.accent)
+    }
+}
+
+@Composable
+private fun ErrorState(message: String, onRetry: () -> Unit) {
+    val brand = Brand.colors
+    Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(message, color = brand.ink, textAlign = TextAlign.Center)
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = brand.accent,
+                    contentColor = brand.background,
+                ),
+            ) {
+                Text("Try again")
+            }
         }
     }
 }
 
 @Composable
-private fun LectureRow(item: LectureItem, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+private fun ReadyState(state: HomeUiState.Ready, onSelectTopic: (String?) -> Unit) {
+    val brand = Brand.colors
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        Text(text = item.title, style = MaterialTheme.typography.titleMedium)
+        item { Hero(modifier = Modifier.padding(horizontal = 16.dp)) }
+
+        item {
+            TopicStrip(
+                topics = state.topics,
+                selectedTopicId = state.selectedTopicId,
+                onSelectTopic = onSelectTopic,
+            )
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = state.selectedTopicName ?: "For you",
+                    color = brand.ink,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "${state.items.size} lectures",
+                    color = brand.muted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+
+        items(state.items, key = { it.id }) { item ->
+            LectureCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
+        }
+    }
+}
+
+@Composable
+private fun Hero(modifier: Modifier = Modifier) {
+    val brand = Brand.colors
+    Column(
+        modifier = modifier.padding(top = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
         Text(
-            text = "${item.speaker} · ${item.context}",
-            style = MaterialTheme.typography.bodySmall,
+            text = "LEARN WITH PURPOSE",
+            color = brand.accent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
         )
+        Text(
+            text = "Learn Islam.\nLive it better.",
+            color = brand.ink,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            fontSize = 34.sp,
+        )
+        Text(
+            text = "Thoughtful lectures, structured series, and a calmer path back to what matters.",
+            color = brand.muted,
+            fontSize = 16.sp,
+        )
+    }
+}
+
+@Composable
+private fun TopicStrip(
+    topics: List<Topic>,
+    selectedTopicId: String?,
+    onSelectTopic: (String?) -> Unit,
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            TopicPill(
+                title = "All",
+                selected = selectedTopicId == null,
+                onClick = { onSelectTopic(null) },
+            )
+        }
+        items(topics, key = { it.id }) { topic ->
+            TopicPill(
+                title = topic.name,
+                selected = selectedTopicId == topic.id,
+                onClick = {
+                    onSelectTopic(if (selectedTopicId == topic.id) null else topic.id)
+                },
+            )
+        }
     }
 }

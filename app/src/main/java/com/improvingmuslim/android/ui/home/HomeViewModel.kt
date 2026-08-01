@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.improvingmuslim.android.data.CatalogRepository
+import com.improvingmuslim.android.model.Catalog
 import com.improvingmuslim.android.model.LectureItem
+import com.improvingmuslim.android.model.Topic
 import com.improvingmuslim.android.model.playableItems
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +15,15 @@ import kotlinx.coroutines.launch
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
-    data class Ready(val items: List<LectureItem>) : HomeUiState
+
+    data class Ready(
+        val topics: List<Topic>,
+        val selectedTopicId: String?,
+        val items: List<LectureItem>,
+    ) : HomeUiState {
+        val selectedTopicName: String? = topics.firstOrNull { it.id == selectedTopicId }?.name
+    }
+
     data class Error(val message: String) : HomeUiState
 }
 
@@ -23,6 +33,10 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private var catalog: Catalog? = null
+    private var discoveryOrder: List<LectureItem> = emptyList()
+    private var selectedTopicId: String? = null
+
     init {
         loadCatalog()
     }
@@ -30,13 +44,35 @@ class HomeViewModel(
     fun loadCatalog() {
         _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
-            _uiState.value = try {
-                val catalog = repository.fetchCatalog()
-                HomeUiState.Ready(catalog.playableItems())
+            try {
+                val loaded = repository.fetchCatalog()
+                catalog = loaded
+                // Shuffle once per load so the feed feels fresh but stays stable while browsing.
+                discoveryOrder = loaded.playableItems().shuffled()
+                selectedTopicId = null
+                emitReady()
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Catalog fetch failed", e)
-                HomeUiState.Error("The lecture library could not be loaded. Please try again.")
+                _uiState.value =
+                    HomeUiState.Error("The lecture library could not be loaded. Please try again.")
             }
         }
+    }
+
+    fun selectTopic(topicId: String?) {
+        selectedTopicId = topicId
+        emitReady()
+    }
+
+    private fun emitReady() {
+        val loaded = catalog ?: return
+        val items = discoveryOrder.filter { item ->
+            selectedTopicId == null || item.categories.contains(selectedTopicId)
+        }
+        _uiState.value = HomeUiState.Ready(
+            topics = loaded.topics,
+            selectedTopicId = selectedTopicId,
+            items = items,
+        )
     }
 }
