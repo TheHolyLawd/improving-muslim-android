@@ -10,6 +10,17 @@ website and iPhone app use, so there's one shared source of content.
 Newest first. Each entry says what changed and why, so you can review progress here
 without reading code.
 
+### 2026-08-01 — Filter and sort row (the "video/list filter")
+- Added the filter/sort row below the topic pills, matching the website:
+  - **All / Series / Videos** filter — switch between showing everything, only series, or
+    only standalone videos.
+  - A **result count** ("23 series · 27 videos") that updates as you filter.
+  - A **Sort by** dropdown: Default (shuffled), Featured order (the catalogue's own order),
+    Most viewed, and A–Z.
+- Note: on the actual mobile website this All/Series/Videos filter is hidden (it only shows
+  on desktop), but since it's genuinely useful it's included here in the app.
+- Not added: the "Hide watched" toggle — it needs watch history, which is a later feature.
+
 ### 2026-08-01 — Real logo in the header
 - Replaced the temporary "IM" placeholder mark with the actual Improving Muslim logo
   (the green arch over an open book). It's bundled into the app as a vector, so it stays
@@ -79,13 +90,13 @@ What works right now:
 - A designed home page: hero header, topic filter pills, and cards for both series (with
   episode counts) and standalone lectures (with durations), matching the website's style.
 - Topic filtering (tap a pill to narrow the feed).
+- An All / Series / Videos filter, a result count, and a Sort by dropdown.
 - Light and dark mode, matching the iPhone app's colours.
 - Handles the loading and error cases.
 
-Not built yet: tapping a card to open it, the "Hide watched / Sort by" filter row, the
-bottom navigation bar, search, speaker browsing, saved items, watch history, notes,
-account sign-in, offline downloads. The header buttons are placeholders until their
-features exist.
+Not built yet: tapping a card to open it, the "Hide watched" toggle, the bottom navigation
+bar, search, speaker browsing, saved items, watch history, notes, account sign-in, offline
+downloads. The header buttons are placeholders until their features exist.
 
 ## Run locally
 

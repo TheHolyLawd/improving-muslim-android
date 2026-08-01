@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -26,11 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.HorizontalDivider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.improvingmuslim.android.model.Topic
+import com.improvingmuslim.android.ui.components.ContentTypeFilter
 import com.improvingmuslim.android.ui.components.FeedCard
+import com.improvingmuslim.android.ui.components.SortDropdown
 import com.improvingmuslim.android.ui.components.TopHeader
 import com.improvingmuslim.android.ui.components.TopicPill
 import com.improvingmuslim.android.ui.theme.Brand
@@ -47,7 +48,12 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             when (val state = uiState) {
                 is HomeUiState.Loading -> LoadingState()
                 is HomeUiState.Error -> ErrorState(state.message, onRetry = viewModel::loadCatalog)
-                is HomeUiState.Ready -> ReadyState(state, onSelectTopic = viewModel::selectTopic)
+                is HomeUiState.Ready -> ReadyState(
+                    state = state,
+                    onSelectTopic = viewModel::selectTopic,
+                    onSelectContentType = viewModel::selectContentType,
+                    onSelectSort = viewModel::selectSort,
+                )
             }
         }
     }
@@ -83,12 +89,16 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun ReadyState(state: HomeUiState.Ready, onSelectTopic: (String?) -> Unit) {
-    val brand = Brand.colors
+private fun ReadyState(
+    state: HomeUiState.Ready,
+    onSelectTopic: (String?) -> Unit,
+    onSelectContentType: (ContentType) -> Unit,
+    onSelectSort: (SortOption) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         item { Hero(modifier = Modifier.padding(horizontal = 16.dp)) }
 
@@ -101,29 +111,45 @@ private fun ReadyState(state: HomeUiState.Ready, onSelectTopic: (String?) -> Uni
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = state.selectedTopicName ?: "For you",
-                    color = brand.ink,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = "${state.items.size} results",
-                    color = brand.muted,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            FilterSortBar(
+                state = state,
+                onSelectContentType = onSelectContentType,
+                onSelectSort = onSelectSort,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
 
         items(state.items, key = { it.id }) { item ->
             FeedCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
+        }
+    }
+}
+
+@Composable
+private fun FilterSortBar(
+    state: HomeUiState.Ready,
+    onSelectContentType: (ContentType) -> Unit,
+    onSelectSort: (SortOption) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val brand = Brand.colors
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ContentTypeFilter(
+            selected = state.contentType,
+            onSelect = onSelectContentType,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "${state.seriesCount} series · ${state.videoCount} videos",
+                color = brand.muted,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            SortDropdown(selected = state.sort, onSelect = onSelectSort)
         }
     }
 }

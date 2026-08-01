@@ -115,6 +115,8 @@ sealed class HomeFeedItem {
     abstract val categoryLabel: String
     /** Bottom-right badge: episode count for a series, duration for a lecture. */
     abstract val badge: String?
+    /** A view metric used only for the "Most viewed" sort. */
+    abstract val sortViews: Long
 
     data class SeriesItem(
         val series: LectureSeries,
@@ -127,6 +129,7 @@ sealed class HomeFeedItem {
         override val categories: List<String> = series.categories
         override val badge: String =
             if (series.episodeCount == 1) "1 Episode" else "${series.episodeCount} Episodes"
+        override val sortViews: Long = series.episodes.sumOf { (it.views ?: 0).toLong() }
     }
 
     data class LectureItem(
@@ -139,6 +142,7 @@ sealed class HomeFeedItem {
         override val thumbnailURL: String? = lecture.thumbnailURL
         override val categories: List<String> = lecture.categories
         override val badge: String? = lecture.duration?.let { formatDuration(it) }
+        override val sortViews: Long = (lecture.views ?: 0).toLong()
     }
 }
 
