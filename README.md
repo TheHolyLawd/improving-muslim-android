@@ -10,6 +10,11 @@ website and iPhone app use, so there's one shared source of content.
 Newest first. Each entry says what changed and why, so you can review progress here
 without reading code.
 
+### 2026-08-01 — Real logo in the header
+- Replaced the temporary "IM" placeholder mark with the actual Improving Muslim logo
+  (the green arch over an open book). It's bundled into the app as a vector, so it stays
+  crisp at any size and doesn't need the network to load.
+
 ### 2026-08-01 — Match the website: top header and card style
 - Added the sticky **top header bar** to match the mobile website: the "Improving
   Muslim" logo, a streak flame icon, a "Sign in" button, a settings gear, and the
