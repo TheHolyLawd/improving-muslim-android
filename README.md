@@ -1,151 +1,263 @@
 # Improving Muslim — Android
 
-Native Android app for [Improving Muslim](https://improvingmuslim.com), built to match the
-approach already used by the project's iPhone app: a real native app (Kotlin + Jetpack
-Compose), not a website wrapped in an app. It reads the same public lecture feed the
-website and iPhone app use, so there's one shared source of content.
+Native Android client for [Improving Muslim](https://improvingmuslim.com), a library of
+curated Islamic lectures. It is a companion to the web app and the iOS app, and reads the
+**same public catalog feed** they publish, so all three clients stay in sync from one
+source of content.
 
-## Update log
+The app is deliberately native (Kotlin + Jetpack Compose), mirroring the iOS app's choice
+of a real native client rather than a web wrapper. Where sensible, its structure and visual
+identity follow the iOS app so the two feel like the same product.
 
-Newest first. Each entry says what changed and why, so you can review progress here
-without reading code.
+> **Status:** early development. The Home screen is functional; several surfaces (search,
+> auth, the other bottom-nav tabs, playback) are intentional placeholders. See
+> [Roadmap](#roadmap).
 
-### 2026-08-02 — Header tweaks: search button and streak count
-- Removed the "Sign in" button from the top header. Signing in will live in the Profile
-  tab instead (to be built).
-- Added a **search** button in its place (visual placeholder until search is built).
-- Added a **streak count** number next to the flame icon. It shows 0 for now (there's no
-  streak feature yet); it will turn gold once a real streak is running.
+---
 
-### 2026-08-02 — Header cleanup to match the updated website
-- Removed the "Sign in" button from the header (sign-in will live in the Profile tab later).
-- Removed the settings icon.
-- Added a search button where the sign-in button used to be.
-- The streak flame now shows a number next to it (the streak score, currently 0 for a
-  signed-out user).
-- Header order is now: logo, then Search · Streak · Menu on the right — matching the
-  updated mobile website.
-- Search, streak, and menu are still visual placeholders until those features are built.
+## Table of contents
 
-### 2026-08-02 — Remove the All/Series/Videos filter
-- Removed the All / Series / Videos content-type filter from the home page, since the
-  actual mobile website doesn't show it. The result count ("23 series · 27 videos") and
-  the Sort by dropdown remain.
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [Architecture](#architecture)
+- [Project layout](#project-layout)
+- [The catalog data contract](#the-catalog-data-contract)
+- [Features](#features)
+  - [Catalog loading](#catalog-loading)
+  - [Home feed](#home-feed)
+  - [Topic filtering](#topic-filtering)
+  - [Sorting & result count](#sorting--result-count)
+  - [Top header](#top-header)
+  - [Bottom navigation](#bottom-navigation)
+  - [Theming (light/dark)](#theming-lightdark)
+  - [Image loading](#image-loading)
+- [Conventions](#conventions)
+- [Known issues](#known-issues)
+- [Roadmap](#roadmap)
 
-### 2026-08-01 — Bottom navigation bar
-- Added the bottom navigation bar matching the website: Home, Explore, Pathways, Speakers,
-  Profile, with matching icons and the active tab shown in green.
-- Home is the working screen; Explore, Pathways, Speakers, and Profile show a tidy
-  "Coming soon" placeholder for now and will be built out later.
+---
 
-### 2026-08-01 — Filter and sort row (the "video/list filter")
-- Added the filter/sort row below the topic pills, matching the website:
-  - **All / Series / Videos** filter — switch between showing everything, only series, or
-    only standalone videos.
-  - A **result count** ("23 series · 27 videos") that updates as you filter.
-  - A **Sort by** dropdown: Default (shuffled), Featured order (the catalogue's own order),
-    Most viewed, and A–Z.
-- Note: on the actual mobile website this All/Series/Videos filter is hidden (it only shows
-  on desktop), but since it's genuinely useful it's included here in the app.
-- Not added: the "Hide watched" toggle — it needs watch history, which is a later feature.
+## Tech stack
 
-### 2026-08-01 — Real logo in the header
-- Replaced the temporary "IM" placeholder mark with the actual Improving Muslim logo
-  (the green arch over an open book). It's bundled into the app as a vector, so it stays
-  crisp at any size and doesn't need the network to load.
+| Concern | Choice |
+|---|---|
+| Language | Kotlin |
+| UI | Jetpack Compose + Material 3 |
+| Min / target SDK | 24 / 37 |
+| Networking | OkHttp |
+| JSON | kotlinx.serialization |
+| Images | Coil (`coil-compose`) |
+| State | `ViewModel` + `StateFlow` |
+| Build | Gradle (Kotlin DSL), version catalog in `gradle/libs.versions.toml` |
 
-### 2026-08-01 — Match the website: top header and card style
-- Added the sticky **top header bar** to match the mobile website: the "Improving
-  Muslim" logo, a streak flame icon, a "Sign in" button, a settings gear, and the
-  hamburger menu. These buttons are **visual placeholders for now** — sign-in, settings,
-  streak, and the menu don't do anything yet; they'll be wired up when those features are
-  built.
-- Reworked the home feed to match the website's card style:
-  - **Series** now show as a single card with an episode count (e.g. "9 Episodes"),
-    instead of every episode appearing separately.
-  - **Standalone lectures** show as their own cards with a duration (e.g. "1:01:43").
-  - Category labels (e.g. "SERIES · FIQH, RIGHTEOUS PREDECESSORS") are now shown in
-    rose/pink, matching the website.
-- Not added yet (noted for a later day): the "Hide watched / Sort by" filter row, and the
-  bottom navigation bar (Home / Explore / Pathways / Speakers / Profile). The hero header
-  ("Learn Islam. Live it better.") is kept from the iPhone app even though the website
-  doesn't show it on mobile — easy to remove later if you'd prefer to match the website
-  exactly.
+Application ID / namespace: `com.improvingmuslim.android`.
 
-### 2026-08-01 — Home page design and polish
-- Gave the home page its real look, matching the iPhone app's identity:
-  - A hero header ("Learn Islam. Live it better.") with the serif editorial heading.
-  - A row of scrollable topic filter pills (All, Purification, Worry & Distress, etc.);
-    tapping one filters the list and updates the section heading and lecture count.
-  - Proper lecture cards with 16:9 thumbnail images, a duration badge, the series/episode
-    label in green, the title, and the speaker.
-- Added the shared brand colour palette (parchment/green in light mode, deep green in dark
-  mode), taken from the iPhone app so both apps look like the same product.
-- Added light and dark mode support.
-- Added image loading for thumbnails and fixed an issue where they were stuck spinning
-  forever (the image loader needed to be told to measure the image before downloading it).
+## Getting started
 
-### 2026-08-01 — Home screen shows real lecture content
-- Added data models matching the website's public feed
-  (`https://improvingmuslim.com/api/v1/catalog.json`).
-- Added networking to fetch that feed on launch.
-- Replaced the placeholder "Hello Android" screen with a scrolling list of real lecture
-  titles, speakers, and series info.
-- Added loading and error states (with a "Try again" button) for when the feed can't be
-  reached.
-- **Found and worked around a data bug**: two episodes in the "Forty Hadith Nawawi" series
-  have `"recap": true` in the website's data instead of actual text, which broke strict
-  parsing. The app now tolerates this kind of bad data instead of crashing. The real fix
-  still belongs on the website side — see [Known issues](#known-issues).
+Requirements: Android Studio (recent stable), and an emulator or a physical device.
 
-### 2026-08-01 — Project created
-- Created the Android Studio project (Kotlin, Jetpack Compose, package
-  `com.improvingmuslim.android`).
-- Connected it to this GitHub repo.
+1. Open this folder in Android Studio and let Gradle sync finish.
+2. Select a device/emulator and press **Run ▶**.
 
-## Known issues
+Command line (from the repo root):
 
-- **Website data bug**: `data/forty-hadith-data.js` lines 105 and 197 (in the main website
-  repo) have `"recap": true` where the field should be text or omitted. This likely affects
-  the iPhone app too, since it expects text there as well. Needs a fix on the website side,
-  not here.
+```bash
+./gradlew assembleDebug     # build the debug APK
+./gradlew installDebug      # build + install on a running device/emulator
+```
 
-## Current state
+On Windows, Gradle needs a JDK. Android Studio ships one; point `JAVA_HOME` at it, e.g.
+`D:\Android Studio\jbr`.
 
-What works right now:
-- App launches and fetches the live lecture catalog from the website.
-- A sticky top header (logo, search, streak with score, menu) — currently visual only.
-- A bottom navigation bar (Home / Explore / Pathways / Speakers / Profile); Home works, the
-  rest are "Coming soon" placeholders.
-- A designed home page: hero header, topic filter pills, and cards for both series (with
-  episode counts) and standalone lectures (with durations), matching the website's style.
-- Topic filtering (tap a pill to narrow the feed).
-- A result count and a Sort by dropdown.
-- Light and dark mode, matching the iPhone app's colours.
-- Handles the loading and error cases.
+The app requests only the `INTERNET` permission (to fetch the catalog and thumbnails).
 
-Not built yet: tapping a card to open it, the "Hide watched" toggle, the Explore /
-Pathways / Speakers / Profile screens, search, saved items, watch history, notes, account
-sign-in, offline downloads. The header buttons and those four tabs are placeholders until
-their features exist.
+## Architecture
 
-## Run locally
+Unidirectional data flow, one `ViewModel` per screen:
 
-Requirements: Android Studio, an emulator or Android device.
+```
+Compose UI  ──user intent──▶  ViewModel  ──▶  Repository  ──▶  Network (OkHttp)
+    ▲                            │
+    └──────  StateFlow<UiState> ─┘
+```
 
-1. Open this folder in Android Studio.
-2. Wait for Gradle sync to finish.
-3. Click **Run ▶️** with an emulator or device selected.
+- **UI** is stateless Compose functions that render a `UiState` and forward user intent as
+  lambdas. No UI reads the network or does business logic.
+- **ViewModel** owns screen state, exposes it as an immutable `StateFlow`, and holds the
+  filtering/sorting logic. It never references Compose or Android views.
+- **Repository** is the single boundary to data. It fetches and decodes the catalog and
+  hands back domain models. Swappable for a fake in tests via constructor injection.
 
-## Project structure
+Layering rule: UI → ViewModel → Repository → platform. Dependencies only point downward.
+
+## Project layout
 
 ```text
 app/src/main/java/com/improvingmuslim/android/
-├── MainActivity.kt          App entry point
-├── model/                   Data models matching the website's JSON feed
-├── data/                    Networking (fetches the live catalog)
+├── MainActivity.kt              Activity entry point; sets the Compose content + theme
+├── data/
+│   └── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
+├── model/
+│   ├── Catalog.kt               Feed data models, HomeFeedItem, and feed helpers
+│   └── LenientNullableStringSerializer.kt   Fault-tolerant string decoder (see Known issues)
 └── ui/
-    ├── theme/               Brand colours, light/dark theme
-    ├── components/          Reusable pieces (lecture card, topic pill, artwork)
-    └── home/                Home screen and its state
+    ├── RootScreen.kt            App scaffold: bottom nav + tab switching
+    ├── theme/
+    │   ├── Brand.kt             Semantic brand palette + BrandColors CompositionLocal
+    │   ├── Theme.kt             Maps brand palette into a Material 3 theme (light/dark)
+    │   └── Type.kt              Typography
+    ├── components/              Reusable, screen-agnostic UI
+    │   ├── TopHeader.kt         Sticky header (logo, search, streak, menu)
+    │   ├── TopicPill.kt         A single topic filter pill
+    │   ├── FilterControls.kt    Sort dropdown
+    │   ├── FeedCard.kt          Series/lecture card
+    │   └── RemoteArtwork.kt     16:9 remote image with loading/empty states
+    └── home/
+        ├── HomeScreen.kt        Home UI (hero, topic strip, filter row, card list)
+        └── HomeViewModel.kt     Home state, filtering, sorting
 ```
+
+`res/drawable/ic_logo.xml` is the app logo as a vector (converted from the website's
+`icon.svg`), so it scales crisply and needs no network.
+
+## The catalog data contract
+
+All content comes from one endpoint, shared with the web and iOS clients:
+
+```
+https://improvingmuslim.com/api/v1/catalog.json
+```
+
+Do **not** hand-maintain a second content list in this repo. The feed is the source of
+truth. Models live in [`model/Catalog.kt`](app/src/main/java/com/improvingmuslim/android/model/Catalog.kt)
+and are decoded with `kotlinx.serialization` (`ignoreUnknownKeys = true`, so additive feed
+fields won't break older builds).
+
+Top-level shape (fields the app relies on):
+
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | Contract version. A breaking change bumps this. |
+| `catalogVersion` | Content hash; usable for cache invalidation. |
+| `topics[]` | Filterable categories: `id`, `name`, `description`, `aliases`. |
+| `speakers[]` | `id`, `name`, `imageURL`, `bio`. |
+| `series[]` | A multi-episode series: `id`, `title`, `speaker`, `categories`, `thumbnailURL`, `episodeCount`, `episodes[]`. |
+| `standaloneLectures[]` | One-off videos: `id`, `title`, `speaker`, `categories`, `thumbnailURL`, `duration`, `videoURL`. |
+
+Stable identity (keep aligned with web/iOS so accounts can merge later):
+
+- Series IDs are series slugs; episode IDs are source video IDs; standalone IDs are slugs.
+- `categories` values are topic IDs and are matched against `topics[].id`.
+
+## Features
+
+Each subsection notes **what it does** and **where it lives**.
+
+### Catalog loading
+
+- **What:** On launch, fetches `catalog.json`. Shows a loading spinner, then the feed, or an
+  error state with a **Try again** button if the request fails.
+- **Where:** [`CatalogRepository`](app/src/main/java/com/improvingmuslim/android/data/CatalogRepository.kt)
+  performs the request/decode on `Dispatchers.IO`;
+  [`HomeViewModel`](app/src/main/java/com/improvingmuslim/android/ui/home/HomeViewModel.kt)
+  exposes `HomeUiState.{Loading, Ready, Error}`.
+
+### Home feed
+
+- **What:** A single scrolling list mixing two card types, matching the website:
+  - **Series** → one card with an episode-count badge (e.g. "9 Episodes").
+  - **Standalone lecture** → one card with a duration badge (e.g. "1:01:43").
+  Each card shows a rose category label (e.g. "SERIES · SEERAH, PROPHETS"), title, speaker,
+  and 16:9 artwork.
+- **Where:** `HomeFeedItem` (sealed type) + `Catalog.homeFeed()` build the feed in
+  [`model/Catalog.kt`](app/src/main/java/com/improvingmuslim/android/model/Catalog.kt);
+  [`FeedCard`](app/src/main/java/com/improvingmuslim/android/ui/components/FeedCard.kt)
+  renders a card. `homeFeed()` also builds each card's category label by mapping category
+  IDs through `topics`.
+
+### Topic filtering
+
+- **What:** A horizontal strip of pills (All + every topic). Tapping one filters the feed to
+  items whose `categories` include that topic; tapping the active pill clears it.
+- **Where:** `TopicStrip` in
+  [`HomeScreen.kt`](app/src/main/java/com/improvingmuslim/android/ui/home/HomeScreen.kt) +
+  [`TopicPill`](app/src/main/java/com/improvingmuslim/android/ui/components/TopicPill.kt);
+  filtering is in `HomeViewModel.emitReady()`.
+
+### Sorting & result count
+
+- **What:** A "Sort by" dropdown with **Default** (shuffled once per load), **Featured
+  order** (the feed's natural catalog order), **Most viewed**, and **A–Z**. A live count
+  ("N series · M videos") reflects the current topic filter.
+- **Where:** `SortOption` enum + sort logic in `HomeViewModel`;
+  [`SortDropdown`](app/src/main/java/com/improvingmuslim/android/ui/components/FilterControls.kt)
+  and `FilterSortBar` in `HomeScreen.kt`.
+
+### Top header
+
+- **What:** Sticky bar with the logo + wordmark on the left and, on the right, **Search**, a
+  **Streak** flame with its score, and the **menu**. Order and contents match the current
+  mobile website. Search, streak, and menu are **visual placeholders** until their features
+  exist (`onSearch/onStreak/onMenu` are wired but no-op).
+- **Where:** [`TopHeader`](app/src/main/java/com/improvingmuslim/android/ui/components/TopHeader.kt).
+
+### Bottom navigation
+
+- **What:** Five tabs — Home, Explore, Pathways, Speakers, Profile — with the active tab in
+  the brand green. Home is the real screen; the other four render a "Coming soon"
+  placeholder.
+- **Where:** [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
+  owns the selected-tab state and the Material 3 `NavigationBar`.
+
+### Theming (light/dark)
+
+- **What:** A shared semantic palette (calm parchment + green in light, deep green in dark),
+  taken from the iOS app so the clients look alike. Follows the system light/dark setting;
+  Material's dynamic color is intentionally disabled to keep the brand identity.
+- **Where:** [`Brand.kt`](app/src/main/java/com/improvingmuslim/android/ui/theme/Brand.kt)
+  defines `BrandColors` + the `LocalBrandColors` CompositionLocal (access via `Brand.colors`
+  in any composable); [`Theme.kt`](app/src/main/java/com/improvingmuslim/android/ui/theme/Theme.kt)
+  provides it and maps it onto the Material scheme.
+
+### Image loading
+
+- **What:** Remote 16:9 thumbnails with a calm placeholder while loading and on failure.
+- **Where:** [`RemoteArtwork`](app/src/main/java/com/improvingmuslim/android/ui/components/RemoteArtwork.kt)
+  uses Coil's `SubcomposeAsyncImage`. Note: `SubcomposeAsyncImage` is used deliberately —
+  `rememberAsyncImagePainter` defers loading until the image is drawn, which deadlocks when
+  a spinner is shown *instead* of the image.
+
+## Conventions
+
+- **Colors:** never hard-code hex in UI. Use `Brand.colors.*`. Add new roles to
+  `BrandColors` (both light and dark) rather than introducing literals.
+- **State:** screens expose an immutable `StateFlow<UiState>`; composables receive state +
+  intent lambdas and stay stateless where practical.
+- **Data:** don't duplicate catalog content locally; extend the models in `model/` and rely
+  on the feed. Keep IDs aligned with web/iOS.
+- **New reusable UI** goes in `ui/components/`; screen-specific UI stays with its screen.
+- **Placeholders:** unbuilt features are visible but inert (e.g. header buttons, non-Home
+  tabs). Keep them clearly non-functional rather than faking data.
+- **Generated/machine files** (`.idea/`, build output, `local.properties`) are git-ignored;
+  don't commit them.
+
+## Known issues
+
+- **Upstream feed data bug:** two "Recap" episodes in the *Forty Hadith Nawawi* series have
+  `"recap": true` (a boolean) where the feed schema expects text. Strict decoding would drop
+  the entire catalog. The app tolerates this via
+  [`LenientNullableStringSerializer`](app/src/main/java/com/improvingmuslim/android/model/LenientNullableStringSerializer.kt),
+  which coerces non-string primitives to null. The real fix belongs in the website repo
+  (`data/forty-hadith-data.js`); this likely affects the iOS app too.
+
+## Roadmap
+
+Rough order, following the iOS app's slices:
+
+1. Open a card → lecture/series detail and video playback.
+2. Search.
+3. Explore, Pathways, Speakers, Profile screens.
+4. Account sign-in (in Profile) + cloud sync.
+5. Saved items, watch history, notes, streaks (unlocks "Hide watched" and a real streak
+   score).
+6. Offline downloads, then release hardening.
