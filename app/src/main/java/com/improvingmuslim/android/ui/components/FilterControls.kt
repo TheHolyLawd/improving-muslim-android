@@ -1,9 +1,7 @@
 package com.improvingmuslim.android.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,49 +20,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.improvingmuslim.android.ui.home.ContentType
 import com.improvingmuslim.android.ui.home.SortOption
 import com.improvingmuslim.android.ui.theme.Brand
-
-/** Segmented All / Series / Videos control — the content-type ("video/list") filter. */
-@Composable
-fun ContentTypeFilter(
-    selected: ContentType,
-    onSelect: (ContentType) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val brand = Brand.colors
-    val shape = RoundedCornerShape(50)
-    Surface(
-        modifier = modifier,
-        shape = shape,
-        color = brand.surface,
-        border = BorderStroke(1.dp, brand.line),
-    ) {
-        Row(modifier = Modifier.padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            ContentType.entries.forEach { type ->
-                val isSelected = type == selected
-                Text(
-                    text = type.label,
-                    color = if (isSelected) brand.background else brand.muted,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(shape)
-                        .background(if (isSelected) brand.accent else brand.surface)
-                        .clickable { onSelect(type) }
-                        .semantics { this.selected = isSelected }
-                        .padding(horizontal = 14.dp, vertical = 7.dp),
-                )
-            }
-        }
-    }
-}
 
 /** "Sort by" label plus a dropdown of sort options. */
 @Composable

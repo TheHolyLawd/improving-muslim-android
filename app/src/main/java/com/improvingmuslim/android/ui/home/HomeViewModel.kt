@@ -12,12 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class ContentType(val label: String) {
-    ALL("All"),
-    SERIES("Series"),
-    VIDEOS("Videos"),
-}
-
 enum class SortOption(val label: String) {
     DEFAULT("Default"),
     FEATURED("Featured order"),
@@ -31,7 +25,6 @@ sealed interface HomeUiState {
     data class Ready(
         val topics: List<Topic>,
         val selectedTopicId: String?,
-        val contentType: ContentType,
         val sort: SortOption,
         val seriesCount: Int,
         val videoCount: Int,
@@ -54,7 +47,6 @@ class HomeViewModel(
     private var topics: List<Topic> = emptyList()
 
     private var selectedTopicId: String? = null
-    private var contentType: ContentType = ContentType.ALL
     private var sort: SortOption = SortOption.DEFAULT
 
     init {
@@ -71,7 +63,6 @@ class HomeViewModel(
                 // Shuffle once per load so "Default" feels fresh but stays stable while browsing.
                 shuffledFeed = baseFeed.shuffled()
                 selectedTopicId = null
-                contentType = ContentType.ALL
                 sort = SortOption.DEFAULT
                 emitReady()
             } catch (e: Exception) {
@@ -84,11 +75,6 @@ class HomeViewModel(
 
     fun selectTopic(topicId: String?) {
         selectedTopicId = topicId
-        emitReady()
-    }
-
-    fun selectContentType(type: ContentType) {
-        contentType = type
         emitReady()
     }
 
@@ -113,20 +99,13 @@ class HomeViewModel(
         val seriesCount = topicFiltered.count { it is HomeFeedItem.SeriesItem }
         val videoCount = topicFiltered.count { it is HomeFeedItem.LectureItem }
 
-        val visible = when (contentType) {
-            ContentType.ALL -> topicFiltered
-            ContentType.SERIES -> topicFiltered.filterIsInstance<HomeFeedItem.SeriesItem>()
-            ContentType.VIDEOS -> topicFiltered.filterIsInstance<HomeFeedItem.LectureItem>()
-        }
-
         _uiState.value = HomeUiState.Ready(
             topics = topics,
             selectedTopicId = selectedTopicId,
-            contentType = contentType,
             sort = sort,
             seriesCount = seriesCount,
             videoCount = videoCount,
-            items = visible,
+            items = topicFiltered,
         )
     }
 }

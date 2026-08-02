@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.improvingmuslim.android.model.Topic
-import com.improvingmuslim.android.ui.components.ContentTypeFilter
 import com.improvingmuslim.android.ui.components.FeedCard
 import com.improvingmuslim.android.ui.components.SortDropdown
 import com.improvingmuslim.android.ui.components.TopHeader
@@ -51,7 +50,6 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                 is HomeUiState.Ready -> ReadyState(
                     state = state,
                     onSelectTopic = viewModel::selectTopic,
-                    onSelectContentType = viewModel::selectContentType,
                     onSelectSort = viewModel::selectSort,
                 )
             }
@@ -92,7 +90,6 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 private fun ReadyState(
     state: HomeUiState.Ready,
     onSelectTopic: (String?) -> Unit,
-    onSelectContentType: (ContentType) -> Unit,
     onSelectSort: (SortOption) -> Unit,
 ) {
     LazyColumn(
@@ -113,7 +110,6 @@ private fun ReadyState(
         item {
             FilterSortBar(
                 state = state,
-                onSelectContentType = onSelectContentType,
                 onSelectSort = onSelectSort,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
@@ -128,29 +124,22 @@ private fun ReadyState(
 @Composable
 private fun FilterSortBar(
     state: HomeUiState.Ready,
-    onSelectContentType: (ContentType) -> Unit,
     onSelectSort: (SortOption) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val brand = Brand.colors
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ContentTypeFilter(
-            selected = state.contentType,
-            onSelect = onSelectContentType,
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "${state.seriesCount} series · ${state.videoCount} videos",
+            color = brand.muted,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "${state.seriesCount} series · ${state.videoCount} videos",
-                color = brand.muted,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-            )
-            SortDropdown(selected = state.sort, onSelect = onSelectSort)
-        }
+        SortDropdown(selected = state.sort, onSelect = onSelectSort)
     }
 }
 

@@ -10,6 +10,11 @@ website and iPhone app use, so there's one shared source of content.
 Newest first. Each entry says what changed and why, so you can review progress here
 without reading code.
 
+### 2026-08-02 — Remove the All/Series/Videos filter
+- Removed the All / Series / Videos content-type filter from the home page, since the
+  actual mobile website doesn't show it. The result count ("23 series · 27 videos") and
+  the Sort by dropdown remain.
+
 ### 2026-08-01 — Bottom navigation bar
 - Added the bottom navigation bar matching the website: Home, Explore, Pathways, Speakers,
   Profile, with matching icons and the active tab shown in green.
@@ -98,7 +103,7 @@ What works right now:
 - A designed home page: hero header, topic filter pills, and cards for both series (with
   episode counts) and standalone lectures (with durations), matching the website's style.
 - Topic filtering (tap a pill to narrow the feed).
-- An All / Series / Videos filter, a result count, and a Sort by dropdown.
+- A result count and a Sort by dropdown.
 - Light and dark mode, matching the iPhone app's colours.
 - Handles the loading and error cases.
 
