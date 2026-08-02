@@ -6,13 +6,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -32,7 +36,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.improvingmuslim.android.model.PlayableVideo
+import com.improvingmuslim.android.data.CatalogRepository
+import com.improvingmuslim.android.model.buildWatchBundle
+import com.improvingmuslim.android.ui.components.TopHeader
 import com.improvingmuslim.android.ui.home.HomeScreen
 import com.improvingmuslim.android.ui.theme.Brand
 import com.improvingmuslim.android.ui.watch.WatchScreen
@@ -49,17 +55,27 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 fun RootScreen() {
     val brand = Brand.colors
     var selectedTab by remember { mutableStateOf(Tab.HOME) }
-    var watchVideo by remember { mutableStateOf<PlayableVideo?>(null) }
+    var watchKey by remember { mutableStateOf<String?>(null) }
 
-    // The Watch screen is a full-screen surface over the tabs; back returns to them.
-    watchVideo?.let { video ->
-        BackHandler { watchVideo = null }
-        WatchScreen(video = video, onBack = { watchVideo = null })
+    // The Watch screen is a full-screen surface (with the shared header) over the tabs.
+    val bundle = watchKey?.let { key -> CatalogRepository.cached?.buildWatchBundle(key) }
+    if (bundle != null) {
+        BackHandler { watchKey = null }
+        Column(modifier = Modifier.fillMaxSize().background(brand.background)) {
+            HeaderBar()
+            WatchScreen(
+                bundle = bundle,
+                onOpenVideo = { watchKey = it },
+                onBack = { watchKey = null },
+                modifier = Modifier.weight(1f).navigationBarsPadding(),
+            )
+        }
         return
     }
 
     Scaffold(
         containerColor = brand.background,
+        topBar = { HeaderBar() },
         bottomBar = {
             NavigationBar(containerColor = brand.surface) {
                 Tab.entries.forEach { tab ->
@@ -90,13 +106,25 @@ fun RootScreen() {
         when (selectedTab) {
             Tab.HOME -> HomeScreen(
                 modifier = Modifier.padding(innerPadding),
-                onOpenVideo = { watchVideo = it },
+                onOpenVideo = { watchKey = it },
             )
             else -> ComingSoon(
                 title = selectedTab.label,
                 modifier = Modifier.padding(innerPadding),
             )
         }
+    }
+}
+
+/** The shared top header, padded below the status bar and coloured as one surface. */
+@Composable
+private fun HeaderBar() {
+    val brand = Brand.colors
+    Column(
+        modifier = Modifier.fillMaxWidth().background(brand.surface).statusBarsPadding(),
+    ) {
+        TopHeader()
+        HorizontalDivider(color = brand.line)
     }
 }
 

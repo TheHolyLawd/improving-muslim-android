@@ -2,7 +2,7 @@ package com.improvingmuslim.android.model
 
 /**
  * A single video ready to play on the Watch screen, flattened from either a standalone
- * lecture or the first available episode of a series.
+ * lecture or an episode of a series.
  */
 data class PlayableVideo(
     val id: String,
@@ -12,6 +12,11 @@ data class PlayableVideo(
     val contextLabel: String?,
     /** Human date like "Feb 8, 2021". */
     val publishedLabel: String?,
+    val thumbnailURL: String?,
+    /** Formatted runtime like "13:34", or null if unknown. */
+    val durationLabel: String?,
+    /** Topic IDs, used to find related videos. */
+    val categories: List<String>,
     val videoURL: String,
     val captionsURL: String?,
     val description: String?,
@@ -19,43 +24,101 @@ data class PlayableVideo(
     val recap: String?,
 )
 
-/**
- * Turns a home-feed card into a playable video, or null if nothing is playable yet
- * (e.g. a series whose episodes haven't been uploaded).
- */
+/** The current video plus what to watch next. */
+data class WatchBundle(
+    val video: PlayableVideo,
+    val upNext: PlayableVideo?,
+    val related: List<PlayableVideo>,
+)
+
+fun StandaloneLecture.toPlayableVideo(): PlayableVideo? {
+    val url = videoURL ?: return null
+    return PlayableVideo(
+        id = "lecture:$id",
+        title = title,
+        speaker = speaker,
+        contextLabel = topic,
+        publishedLabel = formatPublished(published),
+        thumbnailURL = thumbnailURL,
+        durationLabel = duration?.let { formatDuration(it) },
+        categories = categories,
+        videoURL = url,
+        captionsURL = captionsURL,
+        description = description,
+        takeaways = takeaways,
+        recap = recap,
+    )
+}
+
+fun episodeToPlayableVideo(series: LectureSeries, episode: Episode): PlayableVideo? {
+    val url = episode.videoURL ?: return null
+    return PlayableVideo(
+        id = "episode:${series.id}:${episode.id}",
+        title = episode.title,
+        speaker = series.speaker,
+        contextLabel = "${series.title} · Episode ${episode.number}",
+        publishedLabel = formatPublished(episode.published),
+        thumbnailURL = episode.thumbnailURL ?: series.thumbnailURL,
+        durationLabel = episode.duration?.let { formatDuration(it) },
+        categories = series.categories,
+        videoURL = url,
+        captionsURL = episode.captionsURL,
+        description = episode.description,
+        takeaways = episode.takeaways,
+        recap = episode.recap,
+    )
+}
+
+/** Maps a home-feed card to its playable video (series → its first available episode). */
 fun HomeFeedItem.toPlayableVideo(): PlayableVideo? = when (this) {
-    is HomeFeedItem.LectureItem -> {
-        val url = lecture.videoURL ?: return null
-        PlayableVideo(
-            id = "lecture:${lecture.id}",
-            title = lecture.title,
-            speaker = lecture.speaker,
-            contextLabel = lecture.topic,
-            publishedLabel = formatPublished(lecture.published),
-            videoURL = url,
-            captionsURL = lecture.captionsURL,
-            description = lecture.description,
-            takeaways = lecture.takeaways,
-            recap = lecture.recap,
-        )
+    is HomeFeedItem.LectureItem -> lecture.toPlayableVideo()
+    is HomeFeedItem.SeriesItem ->
+        series.episodes.firstOrNull { it.isAvailable }?.let { episodeToPlayableVideo(series, it) }
+}
+
+/** Every playable video in the catalog (all available episodes + standalone lectures). */
+fun Catalog.allPlayable(): List<PlayableVideo> {
+    val episodes = series.flatMap { s ->
+        s.episodes.filter { it.isAvailable }.mapNotNull { episodeToPlayableVideo(s, it) }
+    }
+    val standalone = standaloneLectures.filter { it.isAvailable }.mapNotNull { it.toPlayableVideo() }
+    return episodes + standalone
+}
+
+/**
+ * Builds what the Watch screen needs for [key]: the video itself, the next episode (for a
+ * series) or a related pick, and a list of "more like this" sharing a topic.
+ */
+fun Catalog.buildWatchBundle(key: String): WatchBundle? {
+    val pool = allPlayable()
+    val current = pool.firstOrNull { it.id == key } ?: return null
+
+    // Prefer the literal next episode when watching a series.
+    val nextEpisode = nextEpisodeAfter(key)
+
+    val sameTopic = pool.filter { candidate ->
+        candidate.id != current.id &&
+            candidate.id != nextEpisode?.id &&
+            candidate.categories.any { it in current.categories }
     }
 
-    is HomeFeedItem.SeriesItem -> {
-        val episode = series.episodes.firstOrNull { it.isAvailable } ?: return null
-        val url = episode.videoURL ?: return null
-        PlayableVideo(
-            id = "episode:${series.id}:${episode.id}",
-            title = episode.title,
-            speaker = series.speaker,
-            contextLabel = "${series.title} · Episode ${episode.number}",
-            publishedLabel = formatPublished(episode.published),
-            videoURL = url,
-            captionsURL = episode.captionsURL,
-            description = episode.description,
-            takeaways = episode.takeaways,
-            recap = episode.recap,
-        )
-    }
+    val upNext = nextEpisode ?: sameTopic.firstOrNull()
+    val related = sameTopic.filter { it.id != upNext?.id }.take(6)
+
+    return WatchBundle(video = current, upNext = upNext, related = related)
+}
+
+private fun Catalog.nextEpisodeAfter(key: String): PlayableVideo? {
+    if (!key.startsWith("episode:")) return null
+    val parts = key.split(":")
+    if (parts.size != 3) return null
+    val seriesId = parts[1]
+    val episodeId = parts[2]
+    val s = series.firstOrNull { it.id == seriesId } ?: return null
+    val available = s.episodes.filter { it.isAvailable }
+    val index = available.indexOfFirst { it.id == episodeId }
+    if (index == -1 || index + 1 >= available.size) return null
+    return episodeToPlayableVideo(s, available[index + 1])
 }
 
 private val MONTHS = arrayOf(

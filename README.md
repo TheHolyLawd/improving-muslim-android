@@ -93,10 +93,18 @@ Compose UI  ──user intent──▶  ViewModel  ──▶  Repository  ──
 Layering rule: UI → ViewModel → Repository → platform. Dependencies only point downward.
 
 **Navigation** is intentionally lightweight for now: [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
-holds the selected bottom-nav tab and an optional "currently-watching" video in local
-state. When a video is set, `RootScreen` shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
-full-screen (over the tabs and nav bar) and a `BackHandler` clears it. If the screen graph
-grows, this is the natural point to adopt Navigation Compose.
+holds the selected bottom-nav tab and an optional "currently-watching" video key in local
+state. When a key is set, `RootScreen` shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
+over the tabs (with the shared header, without the bottom nav) and a `BackHandler` clears
+it. Tapping "up next" / "more like this" just swaps the key, so navigation chains. If the
+screen graph grows, this is the natural point to adopt Navigation Compose.
+
+**The top header is global:** `RootScreen` renders it once (`HeaderBar`) above every tab and
+the Watch screen, so no individual screen owns it.
+
+**Shared catalog cache:** [`CatalogRepository`](app/src/main/java/com/improvingmuslim/android/data/CatalogRepository.kt)
+keeps the last loaded catalog in a process-wide cache. Home populates it on launch; the
+Watch screen reads it to compute "up next" / "more like this" without re-fetching.
 
 ## Project layout
 
@@ -207,10 +215,11 @@ Each subsection notes **what it does** and **where it lives**.
 ### Top header
 
 - **What:** Sticky bar with the logo + wordmark on the left and, on the right, **Search**, a
-  **Streak** flame with its score, and the **menu**. Order and contents match the current
-  mobile website. Search, streak, and menu are **visual placeholders** until their features
-  exist (`onSearch/onStreak/onMenu` are wired but no-op).
-- **Where:** [`TopHeader`](app/src/main/java/com/improvingmuslim/android/ui/components/TopHeader.kt).
+  **Streak** flame with its score, and the **menu**. Shown on **every screen** (all tabs and
+  the Watch screen) — see [Navigation](#architecture). Search, streak, and menu are **visual
+  placeholders** until their features exist (`onSearch/onStreak/onMenu` are wired but no-op).
+- **Where:** [`TopHeader`](app/src/main/java/com/improvingmuslim/android/ui/components/TopHeader.kt),
+  hosted by `RootScreen`'s `HeaderBar`.
 
 ### Bottom navigation
 
@@ -222,16 +231,19 @@ Each subsection notes **what it does** and **where it lives**.
 
 ### Watch screen & video playback
 
-- **What:** Tapping any card opens a full-screen Watch screen that plays the video and shows
-  its details — title, meta (speaker · topic · date), description, Key Takeaways, and recap.
-  Standalone lectures play their own video; a series plays its first available episode (a
-  dedicated episode-list screen is a follow-up). The player is real Media3/ExoPlayer with
-  native controls, streaming the catalog's direct MP4 `videoURL` and loading the `.vtt`
-  `captionsURL` as a subtitle track. The player is released when the screen is dismissed.
+- **What:** Tapping any card opens the Watch screen (below the shared header). It plays the
+  video and shows, in order: title, meta (speaker · topic · date), description, **Key
+  Takeaways** and **Recap** in collapsed dropdowns (tap to expand — only shown when the
+  lecture has them), an **Up next** card, and a **More like this** list. Standalone lectures
+  play their own video; a series plays its first available episode. "Up next" is the next
+  episode when watching a series, otherwise a same-topic pick; "more like this" is other
+  same-topic videos. Tapping either navigates on (chained). The player is real
+  Media3/ExoPlayer with native controls, streaming the catalog's direct MP4 `videoURL` and
+  loading the `.vtt` `captionsURL` as a subtitle track. It's released when dismissed.
 - **Where:** [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
-  (player + content); [`PlayableVideo`](app/src/main/java/com/improvingmuslim/android/model/PlayableVideo.kt)
-  + `HomeFeedItem.toPlayableVideo()` flatten a card into what the player needs;
-  `RootScreen` hosts it (see [Navigation](#architecture)).
+  (player + sections); [`PlayableVideo`](app/src/main/java/com/improvingmuslim/android/model/PlayableVideo.kt)
+  holds the flattened video, `Catalog.buildWatchBundle(key)` computes the video + up-next +
+  related, and `RootScreen` hosts it (see [Navigation](#architecture)).
 - **Note:** the website serves video via a blob URL, but the catalog exposes a direct MP4
   that native clients (iOS and this app) play directly. Takeaway/recap text uses lightweight
   `**bold**` markers in the feed; they're stripped to plain text for now.
@@ -282,11 +294,14 @@ Each subsection notes **what it does** and **where it lives**.
 Rough order, following the iOS app's slices:
 
 1. ~~Open a card → video playback.~~ Done (Watch screen).
-2. Series episode-list screen (tap a series → choose an episode), plus "Up next" and
-   "More like this" on the Watch screen.
-3. Search.
-4. Explore, Pathways, Speakers, Profile screens.
-5. Account sign-in (in Profile) + cloud sync.
-6. Saved items, watch history, notes, streaks (unlocks "Hide watched" and a real streak
-   score). Resume playback position belongs here too.
-7. Offline downloads, then release hardening.
+2. ~~"Up next" and "more like this" on the Watch screen.~~ Done.
+3. Custom video controls: standalone captions / speed / fullscreen buttons (no settings
+   gear).
+4. Notes editor on the Watch screen (write/format/save per lecture, like the website).
+5. Series episode-list screen (tap a series → choose an episode).
+6. Search.
+7. Explore, Pathways, Speakers, Profile screens.
+8. Account sign-in (in Profile) + cloud sync.
+9. Saved items, watch history, streaks (unlocks "Hide watched" and a real streak score).
+   Resume playback position belongs here too.
+10. Offline downloads, then release hardening.
