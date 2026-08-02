@@ -1,6 +1,5 @@
 package com.improvingmuslim.android.ui.watch
 
-import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,8 +25,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,17 +34,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.improvingmuslim.android.model.PlayableVideo
 import com.improvingmuslim.android.model.WatchBundle
 import com.improvingmuslim.android.ui.components.RemoteArtwork
@@ -55,18 +49,37 @@ fun WatchScreen(
     bundle: WatchBundle,
     onOpenVideo: (String) -> Unit,
     onBack: () -> Unit,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val brand = Brand.colors
     val video = bundle.video
 
-    Column(modifier = modifier.fillMaxWidth().background(brand.background)) {
-        // Video sits on a black stage with a floating back button, like a normal player.
-        Box(modifier = Modifier.fillMaxWidth().background(Color.Black)) {
+    // One player instance that moves between the fullscreen and normal layouts without
+    // being recreated (which would restart playback and reset speed/captions).
+    val playerSlot = remember(video.id) {
+        movableContentOf<Boolean, Modifier> { fs, mod ->
             VideoPlayer(
                 video = video,
-                modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+                isFullscreen = fs,
+                onToggleFullscreen = onToggleFullscreen,
+                modifier = mod,
             )
+        }
+    }
+
+    if (isFullscreen) {
+        Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+            playerSlot(true, Modifier.fillMaxSize())
+        }
+        return
+    }
+
+    Column(modifier = modifier.fillMaxWidth().background(brand.background)) {
+        // Video sits on a black stage with a floating back button.
+        Box(modifier = Modifier.fillMaxWidth().background(Color.Black)) {
+            playerSlot(false, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
             IconButton(
                 onClick = onBack,
                 modifier = Modifier.padding(4.dp).size(40.dp),
@@ -286,43 +299,3 @@ private fun VideoRowText(video: PlayableVideo) {
 
 /** The feed uses lightweight **bold** markers; drop them for plain native text. */
 private fun stripEmphasis(text: String): String = text.replace("**", "").replace("__", "")
-
-@Composable
-private fun VideoPlayer(video: PlayableVideo, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-
-    val player = remember(video.id) {
-        ExoPlayer.Builder(context).build().apply {
-            val builder = MediaItem.Builder().setUri(video.videoURL)
-            video.captionsURL?.let { captions ->
-                builder.setSubtitleConfigurations(
-                    listOf(
-                        MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(captions))
-                            .setMimeType(MimeTypes.TEXT_VTT)
-                            .setLanguage("en")
-                            .build(),
-                    ),
-                )
-            }
-            setMediaItem(builder.build())
-            prepare()
-        }
-    }
-
-    DisposableEffect(player) {
-        onDispose { player.release() }
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = { ctx ->
-            PlayerView(ctx).apply {
-                this.player = player
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-            }
-        },
-    )
-}

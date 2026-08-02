@@ -238,12 +238,18 @@ Each subsection notes **what it does** and **where it lives**.
   play their own video; a series plays its first available episode. "Up next" is the next
   episode when watching a series, otherwise a same-topic pick; "more like this" is other
   same-topic videos. Tapping either navigates on (chained). The player is real
-  Media3/ExoPlayer with native controls, streaming the catalog's direct MP4 `videoURL` and
-  loading the `.vtt` `captionsURL` as a subtitle track. It's released when dismissed.
+  Media3/ExoPlayer streaming the catalog's direct MP4 `videoURL` and loading the `.vtt`
+  `captionsURL` as a subtitle track. It's released when dismissed.
+- **Custom controls:** the default ExoPlayer controller is off; controls are our own Compose
+  overlay — rewind 10 / play-pause / forward 10, a scrubber, and standalone **captions**,
+  **speed** (cycles 1×–2×), and **fullscreen** buttons. There is no settings gear.
+  Fullscreen rotates to landscape and goes immersive; a `movableContentOf` player plus a
+  single `WatchScreen` call site keep playback alive across the toggle.
 - **Where:** [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
-  (player + sections); [`PlayableVideo`](app/src/main/java/com/improvingmuslim/android/model/PlayableVideo.kt)
+  (sections + layout), [`VideoPlayer`](app/src/main/java/com/improvingmuslim/android/ui/watch/VideoPlayer.kt)
+  (player + custom controls); [`PlayableVideo`](app/src/main/java/com/improvingmuslim/android/model/PlayableVideo.kt)
   holds the flattened video, `Catalog.buildWatchBundle(key)` computes the video + up-next +
-  related, and `RootScreen` hosts it (see [Navigation](#architecture)).
+  related, and `RootScreen` hosts it and drives fullscreen (see [Navigation](#architecture)).
 - **Note:** the website serves video via a blob URL, but the catalog exposes a direct MP4
   that native clients (iOS and this app) play directly. Takeaway/recap text uses lightweight
   `**bold**` markers in the feed; they're stripped to plain text for now.
@@ -295,8 +301,7 @@ Rough order, following the iOS app's slices:
 
 1. ~~Open a card → video playback.~~ Done (Watch screen).
 2. ~~"Up next" and "more like this" on the Watch screen.~~ Done.
-3. Custom video controls: standalone captions / speed / fullscreen buttons (no settings
-   gear).
+3. ~~Custom video controls: standalone captions / speed / fullscreen (no settings gear).~~ Done.
 4. Notes editor on the Watch screen (write/format/save per lecture, like the website).
 5. Series episode-list screen (tap a series → choose an episode).
 6. Search.
