@@ -10,6 +10,23 @@ website and iPhone app use, so there's one shared source of content.
 Newest first. Each entry says what changed and why, so you can review progress here
 without reading code.
 
+### 2026-08-02 — Header tweaks: search button and streak count
+- Removed the "Sign in" button from the top header. Signing in will live in the Profile
+  tab instead (to be built).
+- Added a **search** button in its place (visual placeholder until search is built).
+- Added a **streak count** number next to the flame icon. It shows 0 for now (there's no
+  streak feature yet); it will turn gold once a real streak is running.
+
+### 2026-08-02 — Header cleanup to match the updated website
+- Removed the "Sign in" button from the header (sign-in will live in the Profile tab later).
+- Removed the settings icon.
+- Added a search button where the sign-in button used to be.
+- The streak flame now shows a number next to it (the streak score, currently 0 for a
+  signed-out user).
+- Header order is now: logo, then Search · Streak · Menu on the right — matching the
+  updated mobile website.
+- Search, streak, and menu are still visual placeholders until those features are built.
+
 ### 2026-08-02 — Remove the All/Series/Videos filter
 - Removed the All / Series / Videos content-type filter from the home page, since the
   actual mobile website doesn't show it. The result count ("23 series · 27 videos") and
@@ -97,7 +114,7 @@ without reading code.
 
 What works right now:
 - App launches and fetches the live lecture catalog from the website.
-- A sticky top header (logo, streak, sign-in, settings, menu) — currently visual only.
+- A sticky top header (logo, search, streak with score, menu) — currently visual only.
 - A bottom navigation bar (Home / Explore / Pathways / Speakers / Profile); Home works, the
   rest are "Coming soon" placeholders.
 - A designed home page: hero header, topic filter pills, and cards for both series (with

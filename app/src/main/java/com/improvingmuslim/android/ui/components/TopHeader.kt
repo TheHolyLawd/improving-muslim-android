@@ -1,7 +1,7 @@
 package com.improvingmuslim.android.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,8 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,15 +30,15 @@ import com.improvingmuslim.android.R
 import com.improvingmuslim.android.ui.theme.Brand
 
 /**
- * The sticky top bar. Buttons are visual placeholders for now — streak, sign-in,
- * settings, and the menu don't have working features yet.
+ * The sticky top bar. Buttons are visual placeholders for now — search, streak, and the
+ * menu don't have working features yet.
  */
 @Composable
 fun TopHeader(
     modifier: Modifier = Modifier,
+    streakCount: Int = 0,
+    onSearch: () -> Unit = {},
     onStreak: () -> Unit = {},
-    onSignIn: () -> Unit = {},
-    onSettings: () -> Unit = {},
     onMenu: () -> Unit = {},
 ) {
     val brand = Brand.colors
@@ -60,9 +59,8 @@ fun TopHeader(
                 modifier = Modifier.padding(start = 8.dp).weight(1f, fill = true),
             )
 
-            HeaderIcon(Icons.Filled.Whatshot, "Start your daily learning streak", onStreak)
-            SignInPill(onSignIn)
-            HeaderIcon(Icons.Filled.Settings, "Settings", onSettings)
+            HeaderIcon(Icons.Filled.Search, "Search", onSearch)
+            StreakButton(count = streakCount, onClick = onStreak)
             HeaderIcon(Icons.Filled.Menu, "More menu", onMenu)
         }
     }
@@ -88,32 +86,27 @@ private fun HeaderIcon(icon: ImageVector, description: String, onClick: () -> Un
 }
 
 @Composable
-private fun SignInPill(onClick: () -> Unit) {
+private fun StreakButton(count: Int, onClick: () -> Unit) {
     val brand = Brand.colors
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        color = brand.surface,
-        border = BorderStroke(1.dp, brand.line),
-        modifier = Modifier.padding(horizontal = 2.dp),
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Person,
-                contentDescription = null,
-                tint = brand.ink,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(
-                text = "Sign in",
-                color = brand.ink,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
+        Icon(
+            imageVector = Icons.Filled.Whatshot,
+            contentDescription = "Daily learning streak",
+            tint = brand.gold,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = count.toString(),
+            color = brand.ink,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
