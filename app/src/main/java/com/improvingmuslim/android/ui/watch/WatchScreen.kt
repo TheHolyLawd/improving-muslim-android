@@ -109,6 +109,8 @@ fun WatchScreen(
                 CollapsibleSection(title = "Recap") { Recap(recap) }
             }
 
+            NotesSection(videoId = video.id)
+
             bundle.upNext?.let { UpNext(it, onOpenVideo) }
             if (bundle.related.isNotEmpty()) MoreLikeThis(bundle.related, onOpenVideo)
         }

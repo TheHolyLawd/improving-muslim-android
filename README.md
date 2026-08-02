@@ -30,6 +30,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Top header](#top-header)
   - [Bottom navigation](#bottom-navigation)
   - [Watch screen & video playback](#watch-screen--video-playback)
+  - [Lecture notes](#lecture-notes)
   - [Theming (light/dark)](#theming-lightdark)
   - [Image loading](#image-loading)
 - [Conventions](#conventions)
@@ -112,7 +113,8 @@ Watch screen reads it to compute "up next" / "more like this" without re-fetchin
 app/src/main/java/com/improvingmuslim/android/
 ├── MainActivity.kt              Activity entry point; sets the Compose content + theme
 ├── data/
-│   └── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
+│   ├── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
+│   └── NotesStore.kt            Per-lecture notes saved locally (SharedPreferences)
 ├── model/
 │   ├── Catalog.kt               Feed data models, HomeFeedItem, and feed helpers
 │   ├── PlayableVideo.kt         Flattens a card into a playable video (+ date formatting)
@@ -133,7 +135,9 @@ app/src/main/java/com/improvingmuslim/android/
     │   ├── HomeScreen.kt        Home UI (hero, topic strip, filter row, card list)
     │   └── HomeViewModel.kt     Home state, filtering, sorting
     └── watch/
-        └── WatchScreen.kt       Full-screen video player + lecture details
+        ├── WatchScreen.kt       Watch layout: details, notes, up-next, more-like-this
+        ├── VideoPlayer.kt       ExoPlayer + custom controls (captions/speed/fullscreen)
+        └── NotesSection.kt      Per-lecture notes editor (format toolbar + preview)
 ```
 
 `res/drawable/ic_logo.xml` is the app logo as a vector (converted from the website's
@@ -254,6 +258,18 @@ Each subsection notes **what it does** and **where it lives**.
   that native clients (iOS and this app) play directly. Takeaway/recap text uses lightweight
   `**bold**` markers in the feed; they're stripped to plain text for now.
 
+### Lecture notes
+
+- **What:** A "My Notes" panel on the Watch screen (collapsed by default) where the user can
+  jot notes per lecture. An Edit/Preview toggle, and tap-to-format buttons (H1, H2, H3,
+  bullet, bold) so non-technical users can format without typing markdown. Notes auto-save
+  locally as they type and reload when the lecture is reopened.
+- **Where:** [`NotesSection`](app/src/main/java/com/improvingmuslim/android/ui/watch/NotesSection.kt)
+  (editor + markdown-lite preview); [`NotesStore`](app/src/main/java/com/improvingmuslim/android/data/NotesStore.kt)
+  persists to SharedPreferences keyed by video id.
+- **Note:** notes use a small markdown-lite format (`#`/`##`/`###`, `- `, `**bold**`) stored
+  as plain text — the same shape as the website, so it can sync to an account later.
+
 ### Theming (light/dark)
 
 - **What:** A shared semantic palette (calm parchment + green in light, deep green in dark),
@@ -302,7 +318,7 @@ Rough order, following the iOS app's slices:
 1. ~~Open a card → video playback.~~ Done (Watch screen).
 2. ~~"Up next" and "more like this" on the Watch screen.~~ Done.
 3. ~~Custom video controls: standalone captions / speed / fullscreen (no settings gear).~~ Done.
-4. Notes editor on the Watch screen (write/format/save per lecture, like the website).
+4. ~~Notes editor on the Watch screen (write/format/save per lecture).~~ Done (local; cloud sync later).
 5. Series episode-list screen (tap a series → choose an episode).
 6. Search.
 7. Explore, Pathways, Speakers, Profile screens.
