@@ -1,5 +1,6 @@
 package com.improvingmuslim.android.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,8 +32,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.improvingmuslim.android.model.PlayableVideo
 import com.improvingmuslim.android.ui.home.HomeScreen
 import com.improvingmuslim.android.ui.theme.Brand
+import com.improvingmuslim.android.ui.watch.WatchScreen
 
 private enum class Tab(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Outlined.Home),
@@ -46,6 +49,14 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 fun RootScreen() {
     val brand = Brand.colors
     var selectedTab by remember { mutableStateOf(Tab.HOME) }
+    var watchVideo by remember { mutableStateOf<PlayableVideo?>(null) }
+
+    // The Watch screen is a full-screen surface over the tabs; back returns to them.
+    watchVideo?.let { video ->
+        BackHandler { watchVideo = null }
+        WatchScreen(video = video, onBack = { watchVideo = null })
+        return
+    }
 
     Scaffold(
         containerColor = brand.background,
@@ -77,7 +88,10 @@ fun RootScreen() {
         },
     ) { innerPadding ->
         when (selectedTab) {
-            Tab.HOME -> HomeScreen(modifier = Modifier.padding(innerPadding))
+            Tab.HOME -> HomeScreen(
+                modifier = Modifier.padding(innerPadding),
+                onOpenVideo = { watchVideo = it },
+            )
             else -> ComingSoon(
                 title = selectedTab.label,
                 modifier = Modifier.padding(innerPadding),

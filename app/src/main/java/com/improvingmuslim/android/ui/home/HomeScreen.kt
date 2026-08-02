@@ -28,7 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.improvingmuslim.android.model.PlayableVideo
 import com.improvingmuslim.android.model.Topic
+import com.improvingmuslim.android.model.toPlayableVideo
 import com.improvingmuslim.android.ui.components.FeedCard
 import com.improvingmuslim.android.ui.components.SortDropdown
 import com.improvingmuslim.android.ui.components.TopHeader
@@ -36,7 +38,11 @@ import com.improvingmuslim.android.ui.components.TopicPill
 import com.improvingmuslim.android.ui.theme.Brand
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewModel()) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(),
+    onOpenVideo: (PlayableVideo) -> Unit = {},
+) {
     val uiState by viewModel.uiState.collectAsState()
     val brand = Brand.colors
 
@@ -51,6 +57,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                     state = state,
                     onSelectTopic = viewModel::selectTopic,
                     onSelectSort = viewModel::selectSort,
+                    onOpenVideo = onOpenVideo,
                 )
             }
         }
@@ -91,6 +98,7 @@ private fun ReadyState(
     state: HomeUiState.Ready,
     onSelectTopic: (String?) -> Unit,
     onSelectSort: (SortOption) -> Unit,
+    onOpenVideo: (PlayableVideo) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -116,7 +124,11 @@ private fun ReadyState(
         }
 
         items(state.items, key = { it.id }) { item ->
-            FeedCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
+            FeedCard(
+                item = item,
+                onClick = { item.toPlayableVideo()?.let(onOpenVideo) },
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
     }
 }
@@ -162,6 +174,7 @@ private fun Hero(modifier: Modifier = Modifier) {
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
             fontSize = 34.sp,
+            lineHeight = 44.sp,
         )
         Text(
             text = "Thoughtful lectures, structured series, and a calmer path back to what matters.",

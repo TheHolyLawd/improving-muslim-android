@@ -2,6 +2,7 @@ package com.improvingmuslim.android.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -25,7 +26,7 @@ import com.improvingmuslim.android.model.HomeFeedItem
 import com.improvingmuslim.android.ui.theme.Brand
 
 @Composable
-fun FeedCard(item: HomeFeedItem, modifier: Modifier = Modifier) {
+fun FeedCard(item: HomeFeedItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val brand = Brand.colors
     val cardShape = RoundedCornerShape(8.dp)
 
@@ -33,6 +34,7 @@ fun FeedCard(item: HomeFeedItem, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clip(cardShape)
+            .clickable(onClick = onClick)
             .border(1.dp, brand.line, cardShape)
             .clearAndSetSemantics {
                 contentDescription =

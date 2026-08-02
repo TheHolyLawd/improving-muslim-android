@@ -29,6 +29,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Sorting & result count](#sorting--result-count)
   - [Top header](#top-header)
   - [Bottom navigation](#bottom-navigation)
+  - [Watch screen & video playback](#watch-screen--video-playback)
   - [Theming (light/dark)](#theming-lightdark)
   - [Image loading](#image-loading)
 - [Conventions](#conventions)
@@ -47,6 +48,7 @@ identity follow the iOS app so the two feel like the same product.
 | Networking | OkHttp |
 | JSON | kotlinx.serialization |
 | Images | Coil (`coil-compose`) |
+| Video | Media3 / ExoPlayer (`media3-exoplayer`, `media3-ui`) |
 | State | `ViewModel` + `StateFlow` |
 | Build | Gradle (Kotlin DSL), version catalog in `gradle/libs.versions.toml` |
 
@@ -90,6 +92,12 @@ Compose UI  ──user intent──▶  ViewModel  ──▶  Repository  ──
 
 Layering rule: UI → ViewModel → Repository → platform. Dependencies only point downward.
 
+**Navigation** is intentionally lightweight for now: [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
+holds the selected bottom-nav tab and an optional "currently-watching" video in local
+state. When a video is set, `RootScreen` shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
+full-screen (over the tabs and nav bar) and a `BackHandler` clears it. If the screen graph
+grows, this is the natural point to adopt Navigation Compose.
+
 ## Project layout
 
 ```text
@@ -99,9 +107,10 @@ app/src/main/java/com/improvingmuslim/android/
 │   └── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
 ├── model/
 │   ├── Catalog.kt               Feed data models, HomeFeedItem, and feed helpers
+│   ├── PlayableVideo.kt         Flattens a card into a playable video (+ date formatting)
 │   └── LenientNullableStringSerializer.kt   Fault-tolerant string decoder (see Known issues)
 └── ui/
-    ├── RootScreen.kt            App scaffold: bottom nav + tab switching
+    ├── RootScreen.kt            App scaffold: bottom nav, tab switching, Watch overlay
     ├── theme/
     │   ├── Brand.kt             Semantic brand palette + BrandColors CompositionLocal
     │   ├── Theme.kt             Maps brand palette into a Material 3 theme (light/dark)
@@ -112,9 +121,11 @@ app/src/main/java/com/improvingmuslim/android/
     │   ├── FilterControls.kt    Sort dropdown
     │   ├── FeedCard.kt          Series/lecture card
     │   └── RemoteArtwork.kt     16:9 remote image with loading/empty states
-    └── home/
-        ├── HomeScreen.kt        Home UI (hero, topic strip, filter row, card list)
-        └── HomeViewModel.kt     Home state, filtering, sorting
+    ├── home/
+    │   ├── HomeScreen.kt        Home UI (hero, topic strip, filter row, card list)
+    │   └── HomeViewModel.kt     Home state, filtering, sorting
+    └── watch/
+        └── WatchScreen.kt       Full-screen video player + lecture details
 ```
 
 `res/drawable/ic_logo.xml` is the app logo as a vector (converted from the website's
@@ -209,6 +220,22 @@ Each subsection notes **what it does** and **where it lives**.
 - **Where:** [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
   owns the selected-tab state and the Material 3 `NavigationBar`.
 
+### Watch screen & video playback
+
+- **What:** Tapping any card opens a full-screen Watch screen that plays the video and shows
+  its details — title, meta (speaker · topic · date), description, Key Takeaways, and recap.
+  Standalone lectures play their own video; a series plays its first available episode (a
+  dedicated episode-list screen is a follow-up). The player is real Media3/ExoPlayer with
+  native controls, streaming the catalog's direct MP4 `videoURL` and loading the `.vtt`
+  `captionsURL` as a subtitle track. The player is released when the screen is dismissed.
+- **Where:** [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
+  (player + content); [`PlayableVideo`](app/src/main/java/com/improvingmuslim/android/model/PlayableVideo.kt)
+  + `HomeFeedItem.toPlayableVideo()` flatten a card into what the player needs;
+  `RootScreen` hosts it (see [Navigation](#architecture)).
+- **Note:** the website serves video via a blob URL, but the catalog exposes a direct MP4
+  that native clients (iOS and this app) play directly. Takeaway/recap text uses lightweight
+  `**bold**` markers in the feed; they're stripped to plain text for now.
+
 ### Theming (light/dark)
 
 - **What:** A shared semantic palette (calm parchment + green in light, deep green in dark),
@@ -254,10 +281,12 @@ Each subsection notes **what it does** and **where it lives**.
 
 Rough order, following the iOS app's slices:
 
-1. Open a card → lecture/series detail and video playback.
-2. Search.
-3. Explore, Pathways, Speakers, Profile screens.
-4. Account sign-in (in Profile) + cloud sync.
-5. Saved items, watch history, notes, streaks (unlocks "Hide watched" and a real streak
-   score).
-6. Offline downloads, then release hardening.
+1. ~~Open a card → video playback.~~ Done (Watch screen).
+2. Series episode-list screen (tap a series → choose an episode), plus "Up next" and
+   "More like this" on the Watch screen.
+3. Search.
+4. Explore, Pathways, Speakers, Profile screens.
+5. Account sign-in (in Profile) + cloud sync.
+6. Saved items, watch history, notes, streaks (unlocks "Hide watched" and a real streak
+   score). Resume playback position belongs here too.
+7. Offline downloads, then release hardening.
