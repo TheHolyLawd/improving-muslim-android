@@ -66,6 +66,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onOpenVideo: (String) -> Unit = {},
     onOpenSeries: (String) -> Unit = {},
+    onOpenHistory: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val brand = Brand.colors
@@ -80,6 +81,7 @@ fun HomeScreen(
                 onSelectSort = viewModel::selectSort,
                 onOpenVideo = onOpenVideo,
                 onOpenSeries = onOpenSeries,
+                onOpenHistory = onOpenHistory,
             )
         }
     }
@@ -121,6 +123,7 @@ private fun ReadyState(
     onSelectSort: (SortOption) -> Unit,
     onOpenVideo: (String) -> Unit,
     onOpenSeries: (String) -> Unit,
+    onOpenHistory: () -> Unit,
 ) {
     // Resolved once per Home mount — and Home re-mounts whenever the Watch screen closes,
     // so returning from a video refreshes the "Continue learning" card.
@@ -141,7 +144,7 @@ private fun ReadyState(
                     video = resumeVideo,
                     progress = resume,
                     onResume = { onOpenVideo(resumeVideo.id) },
-                    onViewHistory = {}, // placeholder — history screen not built yet
+                    onViewHistory = onOpenHistory,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }

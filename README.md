@@ -31,6 +31,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Bottom navigation](#bottom-navigation)
   - [Series episode list](#series-episode-list)
   - [Continue learning (resume)](#continue-learning-resume)
+  - [Watch history](#watch-history)
   - [Watch screen & video playback](#watch-screen--video-playback)
   - [Lecture notes](#lecture-notes)
   - [Theming (light/dark)](#theming-lightdark)
@@ -96,14 +97,16 @@ Compose UI  ──user intent──▶  ViewModel  ──▶  Repository  ──
 Layering rule: UI → ViewModel → Repository → platform. Dependencies only point downward.
 
 **Navigation** is intentionally lightweight for now: [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
-holds the selected bottom-nav tab, an optional open-series key, and an optional
-"currently-watching" video key in local state. When the series key is set it shows the
-[`SeriesScreen`](app/src/main/java/com/improvingmuslim/android/ui/series/SeriesScreen.kt)
-episode list; when a video key is set it shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
-on top of that. Both are full-screen surfaces over the tabs (with the shared header,
-without the bottom nav), and each has a `BackHandler`, so back walks Watch → episode list →
-tabs. Tapping "up next" / "more like this" just swaps the video key, so navigation chains.
-If the screen graph grows, this is the natural point to adopt Navigation Compose.
+holds the selected bottom-nav tab, an optional open-series key, a history flag, and an
+optional "currently-watching" video key in local state. When the series key is set it shows
+the [`SeriesScreen`](app/src/main/java/com/improvingmuslim/android/ui/series/SeriesScreen.kt)
+episode list; when the history flag is set it shows [`HistoryScreen`](app/src/main/java/com/improvingmuslim/android/ui/history/HistoryScreen.kt);
+when a video key is set it shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
+on top of those. Each is a full-screen surface over the tabs (with the shared header, without
+the bottom nav) with its own `BackHandler`, so back walks Watch → the surface it was opened
+from (episode list or history) → tabs. Tapping "up next" / "more like this" just swaps the
+video key, so navigation chains. If the screen graph grows, this is the natural point to
+adopt Navigation Compose.
 
 **The top header is global:** `RootScreen` renders it once (`HeaderBar`) above every tab and
 the Watch screen, so no individual screen owns it.
@@ -140,6 +143,8 @@ app/src/main/java/com/improvingmuslim/android/
     ├── home/
     │   ├── HomeScreen.kt        Home UI (hero, topic strip, filter row, card list)
     │   └── HomeViewModel.kt     Home state, filtering, sorting
+    ├── history/
+    │   └── HistoryScreen.kt     Watch history list (resume, remove, clear)
     ├── series/
     │   └── SeriesScreen.kt      Series episode list (tap an episode to watch)
     └── watch/
@@ -262,8 +267,8 @@ Each subsection notes **what it does** and **where it lives**.
   speaker, title, "N% watched · M min left", and a **Resume** action. Tapping it reopens the
   video, which seeks back to where the viewer left off. The section is hidden until there's
   something to resume, and an item drops off once it's ~98% watched or played to the end.
-  Mirrors the website's mobile "Continue learning" shelf. A **View history** button sits in
-  the heading; it's a placeholder (no destination yet).
+  Mirrors the website's mobile "Continue learning" shelf. A **View history** button in the
+  heading opens the [Watch history](#watch-history) screen.
 - **Where:** [`WatchProgressStore`](app/src/main/java/com/improvingmuslim/android/data/WatchProgressStore.kt)
   saves `{position, duration, completed}` per video id (SharedPreferences);
   [`VideoPlayer`](app/src/main/java/com/improvingmuslim/android/ui/watch/VideoPlayer.kt)
@@ -273,6 +278,20 @@ Each subsection notes **what it does** and **where it lives**.
   Resolved once per Home mount, and Home re-mounts when the Watch screen closes, so returning
   from a video refreshes the card.
 - **Note:** local-only for now (device storage), like notes; can sync to an account later.
+
+### Watch history
+
+- **What:** The screen behind the "View history" button: every started or finished lecture,
+  most recent first. Each row shows the thumbnail (with a progress bar), title, series/topic,
+  and either **"Resume at MM:SS"** or **"Completed"** plus a relative time ("5m ago",
+  "Yesterday"). Tapping a row resumes that video; each row has a **✕** to remove it, and
+  **Clear** wipes all history (behind a confirm dialog). An empty state shows when there's
+  nothing yet. Mirrors the website's history page.
+- **Where:** [`HistoryScreen`](app/src/main/java/com/improvingmuslim/android/ui/history/HistoryScreen.kt),
+  hosted by `RootScreen` as a full-screen surface over the tabs (see [Navigation](#architecture)).
+  Reads/removes/clears via [`WatchProgressStore`](app/src/main/java/com/improvingmuslim/android/data/WatchProgressStore.kt)
+  and resolves each record to its catalog video (records whose video is no longer in the feed
+  are skipped).
 
 ### Watch screen & video playback
 
@@ -366,7 +385,7 @@ Rough order, following the iOS app's slices:
 6. Search.
 7. Explore, Pathways, Speakers, Profile screens.
 8. Account sign-in (in Profile) + cloud sync.
-9. ~~Resume playback position~~ Done (home "Continue learning" card + seek-on-open). Still to
-   come: saved items, a full watch-history screen (the "View history" button is a placeholder),
-   streaks (unlocks "Hide watched" and a real streak score).
+9. ~~Resume playback position~~ and ~~watch history~~ done (home "Continue learning" card +
+   seek-on-open; the "View history" screen with resume/remove/clear). Still to come: saved
+   items, streaks (unlocks "Hide watched" and a real streak score).
 10. Offline downloads, then release hardening.

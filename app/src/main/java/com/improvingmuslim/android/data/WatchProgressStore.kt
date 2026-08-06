@@ -39,10 +39,21 @@ object WatchProgressStore {
 
     /** The most recently watched video that's still worth resuming, or null. */
     fun mostRecentResumable(context: Context): Progress? =
+        all(context).firstOrNull { it.isResumable }
+
+    /** Every recorded video (finished and unfinished), most recent first. */
+    fun all(context: Context): List<Progress> =
         prefs(context).all.keys
             .mapNotNull { get(context, it) }
-            .filter { it.isResumable }
-            .maxByOrNull { it.updatedAt }
+            .sortedByDescending { it.updatedAt }
+
+    fun remove(context: Context, key: String) {
+        prefs(context).edit().remove(key).apply()
+    }
+
+    fun clear(context: Context) {
+        prefs(context).edit().clear().apply()
+    }
 
     private fun parse(key: String, raw: String?): Progress? {
         val parts = raw?.split("|") ?: return null

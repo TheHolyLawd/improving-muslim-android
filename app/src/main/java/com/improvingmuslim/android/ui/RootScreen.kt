@@ -48,6 +48,7 @@ import com.improvingmuslim.android.data.CatalogRepository
 import com.improvingmuslim.android.model.buildWatchBundle
 import com.improvingmuslim.android.model.categoryLabel
 import com.improvingmuslim.android.ui.components.TopHeader
+import com.improvingmuslim.android.ui.history.HistoryScreen
 import com.improvingmuslim.android.ui.home.HomeScreen
 import com.improvingmuslim.android.ui.series.SeriesScreen
 import com.improvingmuslim.android.ui.theme.Brand
@@ -66,6 +67,7 @@ fun RootScreen() {
     val brand = Brand.colors
     var selectedTab by remember { mutableStateOf(Tab.HOME) }
     var seriesKey by remember { mutableStateOf<String?>(null) }
+    var historyOpen by remember { mutableStateOf(false) }
     var watchKey by remember { mutableStateOf<String?>(null) }
     var fullscreen by remember { mutableStateOf(false) }
     val closeWatch = { watchKey = null; fullscreen = false }
@@ -119,6 +121,21 @@ fun RootScreen() {
                 } else {
                     Modifier.weight(1f).navigationBarsPadding()
                 },
+            )
+        }
+        return
+    }
+
+    // Watch History is a full-screen surface over the tabs (opened from the home "View
+    // history" button), below the Watch screen in the back stack.
+    if (historyOpen) {
+        BackHandler { historyOpen = false }
+        Column(modifier = Modifier.fillMaxSize().background(brand.background)) {
+            HeaderBar()
+            HistoryScreen(
+                onOpenVideo = { watchKey = it },
+                onBack = { historyOpen = false },
+                modifier = Modifier.weight(1f).navigationBarsPadding(),
             )
         }
         return
@@ -178,6 +195,7 @@ fun RootScreen() {
                 modifier = Modifier.padding(innerPadding),
                 onOpenVideo = { watchKey = it },
                 onOpenSeries = { seriesKey = it },
+                onOpenHistory = { historyOpen = true },
             )
             else -> ComingSoon(
                 title = selectedTab.label,
