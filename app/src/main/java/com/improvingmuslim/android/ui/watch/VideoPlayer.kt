@@ -51,6 +51,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.improvingmuslim.android.data.WatchProgressStore
 import com.improvingmuslim.android.model.PlayableVideo
 import com.improvingmuslim.android.model.formatDuration
 import kotlinx.coroutines.delay
@@ -70,6 +71,11 @@ fun VideoPlayer(
 ) {
     val context = LocalContext.current
 
+    // Where the viewer left off (0 if new or already finished).
+    val resumeAtMs = remember(video.id) {
+        WatchProgressStore.get(context, video.id)?.takeIf { it.isResumable }?.positionMs ?: 0L
+    }
+
     val player = remember(video.id) {
         ExoPlayer.Builder(context).build().apply {
             val builder = MediaItem.Builder().setUri(video.videoURL)
@@ -85,12 +91,14 @@ fun VideoPlayer(
             }
             setMediaItem(builder.build())
             prepare()
+            if (resumeAtMs > 0) seekTo(resumeAtMs)
         }
     }
 
     var isPlaying by remember { mutableStateOf(false) }
     var duration by remember { mutableLongStateOf(0L) }
-    var position by remember { mutableLongStateOf(0L) }
+    // Seed the scrubber at the resume point so it doesn't read 0:00 before playback starts.
+    var position by remember(video.id) { mutableLongStateOf(resumeAtMs) }
     var scrubbing by remember { mutableStateOf(false) }
     var scrubValue by remember { mutableFloatStateOf(0f) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -108,20 +116,33 @@ fun VideoPlayer(
                 if (state == Player.STATE_READY) {
                     val d = player.duration
                     if (d != C.TIME_UNSET) duration = d
+                    // Reflect the resumed position once the media is ready.
+                    if (!scrubbing) position = player.currentPosition
+                }
+                if (state == Player.STATE_ENDED) {
+                    WatchProgressStore.save(context, video.id, player.duration, player.duration, ended = true)
                 }
             }
         }
         player.addListener(listener)
         onDispose {
             player.removeListener(listener)
+            // Persist the final spot so Home can resume it.
+            WatchProgressStore.save(context, video.id, player.currentPosition, player.duration, ended = false)
             player.release()
         }
     }
 
-    // Track the playhead while playing.
+    // Track the playhead while playing, and persist progress every ~5s (tick 0 records the
+    // video as started right away, even for a short watch).
     LaunchedEffect(isPlaying) {
+        var tick = 0
         while (isPlaying) {
             if (!scrubbing) position = player.currentPosition
+            if (tick % 10 == 0) {
+                WatchProgressStore.save(context, video.id, player.currentPosition, player.duration, ended = false)
+            }
+            tick++
             delay(500)
         }
     }

@@ -30,6 +30,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Top header](#top-header)
   - [Bottom navigation](#bottom-navigation)
   - [Series episode list](#series-episode-list)
+  - [Continue learning (resume)](#continue-learning-resume)
   - [Watch screen & video playback](#watch-screen--video-playback)
   - [Lecture notes](#lecture-notes)
   - [Theming (light/dark)](#theming-lightdark)
@@ -118,7 +119,8 @@ app/src/main/java/com/improvingmuslim/android/
 ├── MainActivity.kt              Activity entry point; sets the Compose content + theme
 ├── data/
 │   ├── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
-│   └── NotesStore.kt            Per-lecture notes saved locally (SharedPreferences)
+│   ├── NotesStore.kt            Per-lecture notes saved locally (SharedPreferences)
+│   └── WatchProgressStore.kt    Per-video playback progress (resume points)
 ├── model/
 │   ├── Catalog.kt               Feed data models, HomeFeedItem, and feed helpers
 │   ├── PlayableVideo.kt         Flattens a card into a playable video (+ date formatting)
@@ -253,6 +255,25 @@ Each subsection notes **what it does** and **where it lives**.
 - **Why the episode key matters:** opening an episode by its `episode:<series>:<episode>`
   key is what lets the Watch screen cycle through the series (see below).
 
+### Continue learning (resume)
+
+- **What:** A "Continue learning" section at the top of Home showing the single most-recently
+  watched, unfinished lecture — its thumbnail (with a resume timecode and a progress bar),
+  speaker, title, "N% watched · M min left", and a **Resume** action. Tapping it reopens the
+  video, which seeks back to where the viewer left off. The section is hidden until there's
+  something to resume, and an item drops off once it's ~98% watched or played to the end.
+  Mirrors the website's mobile "Continue learning" shelf. A **View history** button sits in
+  the heading; it's a placeholder (no destination yet).
+- **Where:** [`WatchProgressStore`](app/src/main/java/com/improvingmuslim/android/data/WatchProgressStore.kt)
+  saves `{position, duration, completed}` per video id (SharedPreferences);
+  [`VideoPlayer`](app/src/main/java/com/improvingmuslim/android/ui/watch/VideoPlayer.kt)
+  persists progress every ~5s, on leave, and on end, and seeks to the saved point on open;
+  the `ContinueLearning` composable and the resume lookup live in
+  [`HomeScreen.kt`](app/src/main/java/com/improvingmuslim/android/ui/home/HomeScreen.kt).
+  Resolved once per Home mount, and Home re-mounts when the Watch screen closes, so returning
+  from a video refreshes the card.
+- **Note:** local-only for now (device storage), like notes; can sync to an account later.
+
 ### Watch screen & video playback
 
 - **What:** Opening a video shows the Watch screen (below the shared header). It plays the
@@ -345,6 +366,7 @@ Rough order, following the iOS app's slices:
 6. Search.
 7. Explore, Pathways, Speakers, Profile screens.
 8. Account sign-in (in Profile) + cloud sync.
-9. Saved items, watch history, streaks (unlocks "Hide watched" and a real streak score).
-   Resume playback position belongs here too.
+9. ~~Resume playback position~~ Done (home "Continue learning" card + seek-on-open). Still to
+   come: saved items, a full watch-history screen (the "View history" button is a placeholder),
+   streaks (unlocks "Hide watched" and a real streak score).
 10. Offline downloads, then release hardening.
