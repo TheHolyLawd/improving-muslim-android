@@ -46,8 +46,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.improvingmuslim.android.data.CatalogRepository
 import com.improvingmuslim.android.model.buildWatchBundle
+import com.improvingmuslim.android.model.categoryLabel
 import com.improvingmuslim.android.ui.components.TopHeader
 import com.improvingmuslim.android.ui.home.HomeScreen
+import com.improvingmuslim.android.ui.series.SeriesScreen
 import com.improvingmuslim.android.ui.theme.Brand
 import com.improvingmuslim.android.ui.watch.WatchScreen
 
@@ -63,6 +65,7 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 fun RootScreen() {
     val brand = Brand.colors
     var selectedTab by remember { mutableStateOf(Tab.HOME) }
+    var seriesKey by remember { mutableStateOf<String?>(null) }
     var watchKey by remember { mutableStateOf<String?>(null) }
     var fullscreen by remember { mutableStateOf(false) }
     val closeWatch = { watchKey = null; fullscreen = false }
@@ -121,6 +124,25 @@ fun RootScreen() {
         return
     }
 
+    // The series episode-list is a full-screen surface (with the shared header) over the
+    // tabs, sitting below the Watch screen in the back stack.
+    val catalog = CatalogRepository.cached
+    val series = seriesKey?.let { id -> catalog?.series?.firstOrNull { it.id == id } }
+    if (series != null && catalog != null) {
+        BackHandler { seriesKey = null }
+        Column(modifier = Modifier.fillMaxSize().background(brand.background)) {
+            HeaderBar()
+            SeriesScreen(
+                series = series,
+                categoryLabel = catalog.categoryLabel("SERIES", series.categories),
+                onOpenVideo = { watchKey = it },
+                onBack = { seriesKey = null },
+                modifier = Modifier.weight(1f).navigationBarsPadding(),
+            )
+        }
+        return
+    }
+
     Scaffold(
         containerColor = brand.background,
         topBar = { HeaderBar() },
@@ -155,6 +177,7 @@ fun RootScreen() {
             Tab.HOME -> HomeScreen(
                 modifier = Modifier.padding(innerPadding),
                 onOpenVideo = { watchKey = it },
+                onOpenSeries = { seriesKey = it },
             )
             else -> ComingSoon(
                 title = selectedTab.label,

@@ -29,6 +29,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Sorting & result count](#sorting--result-count)
   - [Top header](#top-header)
   - [Bottom navigation](#bottom-navigation)
+  - [Series episode list](#series-episode-list)
   - [Watch screen & video playback](#watch-screen--video-playback)
   - [Lecture notes](#lecture-notes)
   - [Theming (light/dark)](#theming-lightdark)
@@ -94,11 +95,14 @@ Compose UI  ──user intent──▶  ViewModel  ──▶  Repository  ──
 Layering rule: UI → ViewModel → Repository → platform. Dependencies only point downward.
 
 **Navigation** is intentionally lightweight for now: [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
-holds the selected bottom-nav tab and an optional "currently-watching" video key in local
-state. When a key is set, `RootScreen` shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
-over the tabs (with the shared header, without the bottom nav) and a `BackHandler` clears
-it. Tapping "up next" / "more like this" just swaps the key, so navigation chains. If the
-screen graph grows, this is the natural point to adopt Navigation Compose.
+holds the selected bottom-nav tab, an optional open-series key, and an optional
+"currently-watching" video key in local state. When the series key is set it shows the
+[`SeriesScreen`](app/src/main/java/com/improvingmuslim/android/ui/series/SeriesScreen.kt)
+episode list; when a video key is set it shows [`WatchScreen`](app/src/main/java/com/improvingmuslim/android/ui/watch/WatchScreen.kt)
+on top of that. Both are full-screen surfaces over the tabs (with the shared header,
+without the bottom nav), and each has a `BackHandler`, so back walks Watch → episode list →
+tabs. Tapping "up next" / "more like this" just swaps the video key, so navigation chains.
+If the screen graph grows, this is the natural point to adopt Navigation Compose.
 
 **The top header is global:** `RootScreen` renders it once (`HeaderBar`) above every tab and
 the Watch screen, so no individual screen owns it.
@@ -134,6 +138,8 @@ app/src/main/java/com/improvingmuslim/android/
     ├── home/
     │   ├── HomeScreen.kt        Home UI (hero, topic strip, filter row, card list)
     │   └── HomeViewModel.kt     Home state, filtering, sorting
+    ├── series/
+    │   └── SeriesScreen.kt      Series episode list (tap an episode to watch)
     └── watch/
         ├── WatchScreen.kt       Watch layout: details, notes, up-next, more-like-this
         ├── VideoPlayer.kt       ExoPlayer + custom controls (captions/speed/fullscreen)
@@ -233,14 +239,28 @@ Each subsection notes **what it does** and **where it lives**.
 - **Where:** [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
   owns the selected-tab state and the Material 3 `NavigationBar`.
 
+### Series episode list
+
+- **What:** Tapping a **series** card opens its episode list (below the shared header)
+  instead of jumping straight into an episode: the series artwork, title, speaker, "N of M
+  available", description, then every episode as a numbered row with its thumbnail, title,
+  duration, and date. Available episodes are tappable and open the Watch screen; not-yet-
+  released episodes are shown dimmed with their status note (e.g. "Coming soon") and are
+  inert. Standalone lecture cards still open the Watch screen directly.
+- **Where:** [`SeriesScreen`](app/src/main/java/com/improvingmuslim/android/ui/series/SeriesScreen.kt);
+  `RootScreen` hosts it (see [Navigation](#architecture)) and `HomeScreen` routes series
+  taps here while lecture taps go to Watch.
+- **Why the episode key matters:** opening an episode by its `episode:<series>:<episode>`
+  key is what lets the Watch screen cycle through the series (see below).
+
 ### Watch screen & video playback
 
-- **What:** Tapping any card opens the Watch screen (below the shared header). It plays the
+- **What:** Opening a video shows the Watch screen (below the shared header). It plays the
   video and shows, in order: title, meta (speaker · topic · date), description, **Key
   Takeaways** and **Recap** in collapsed dropdowns (tap to expand — only shown when the
-  lecture has them), an **Up next** card, and a **More like this** list. Standalone lectures
-  play their own video; a series plays its first available episode. "Up next" is the next
-  episode when watching a series, otherwise a same-topic pick; "more like this" is other
+  lecture has them), an **Up next** card, and a **More like this** list. "Up next" is the
+  next episode while a series still has one; once the series ends (or for a standalone) it
+  falls back to a same-topic video from a **different** series. "More like this" is other
   same-topic videos. Tapping either navigates on (chained). The player is real
   Media3/ExoPlayer streaming the catalog's direct MP4 `videoURL` and loading the `.vtt`
   `captionsURL` as a subtitle track. It's released when dismissed.
@@ -319,7 +339,7 @@ Rough order, following the iOS app's slices:
 2. ~~"Up next" and "more like this" on the Watch screen.~~ Done.
 3. ~~Custom video controls: standalone captions / speed / fullscreen (no settings gear).~~ Done.
 4. ~~Notes editor on the Watch screen (write/format/save per lecture).~~ Done (local; cloud sync later).
-5. Series episode-list screen (tap a series → choose an episode).
+5. ~~Series episode-list screen (tap a series → choose an episode).~~ Done.
 6. Search.
 7. Explore, Pathways, Speakers, Profile screens.
 8. Account sign-in (in Profile) + cloud sync.

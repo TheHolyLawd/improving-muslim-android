@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.improvingmuslim.android.model.HomeFeedItem
 import com.improvingmuslim.android.model.Topic
 import com.improvingmuslim.android.model.toPlayableVideo
 import com.improvingmuslim.android.ui.components.FeedCard
@@ -39,6 +40,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
     onOpenVideo: (String) -> Unit = {},
+    onOpenSeries: (String) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val brand = Brand.colors
@@ -52,6 +54,7 @@ fun HomeScreen(
                 onSelectTopic = viewModel::selectTopic,
                 onSelectSort = viewModel::selectSort,
                 onOpenVideo = onOpenVideo,
+                onOpenSeries = onOpenSeries,
             )
         }
     }
@@ -92,6 +95,7 @@ private fun ReadyState(
     onSelectTopic: (String?) -> Unit,
     onSelectSort: (SortOption) -> Unit,
     onOpenVideo: (String) -> Unit,
+    onOpenSeries: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -119,7 +123,13 @@ private fun ReadyState(
         items(state.items, key = { it.id }) { item ->
             FeedCard(
                 item = item,
-                onClick = { item.toPlayableVideo()?.id?.let(onOpenVideo) },
+                onClick = {
+                    when (item) {
+                        is HomeFeedItem.SeriesItem -> onOpenSeries(item.series.id)
+                        is HomeFeedItem.LectureItem ->
+                            item.toPlayableVideo()?.id?.let(onOpenVideo)
+                    }
+                },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }

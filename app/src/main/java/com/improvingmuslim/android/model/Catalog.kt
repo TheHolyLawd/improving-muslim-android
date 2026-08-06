@@ -146,18 +146,19 @@ sealed class HomeFeedItem {
     }
 }
 
-fun Catalog.homeFeed(): List<HomeFeedItem> {
+/** e.g. "SERIES · SEERAH, PROPHETS". Maps category IDs to topic names. */
+fun Catalog.categoryLabel(type: String, categories: List<String>): String {
     val topicName = topics.associate { it.id to it.name }
-    fun label(type: String, cats: List<String>): String {
-        val names = cats.mapNotNull { topicName[it] }.joinToString(", ") { it.uppercase() }
-        return if (names.isEmpty()) type else "$type · $names"
-    }
+    val names = categories.mapNotNull { topicName[it] }.joinToString(", ") { it.uppercase() }
+    return if (names.isEmpty()) type else "$type · $names"
+}
 
+fun Catalog.homeFeed(): List<HomeFeedItem> {
     val seriesItems = series.map {
-        HomeFeedItem.SeriesItem(it, label("SERIES", it.categories))
+        HomeFeedItem.SeriesItem(it, categoryLabel("SERIES", it.categories))
     }
     val lectureItems = standaloneLectures.filter { it.isAvailable }.map {
-        HomeFeedItem.LectureItem(it, label("LECTURE", it.categories))
+        HomeFeedItem.LectureItem(it, categoryLabel("LECTURE", it.categories))
     }
     return seriesItems + lectureItems
 }

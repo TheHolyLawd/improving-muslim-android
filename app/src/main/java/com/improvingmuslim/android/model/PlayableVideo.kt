@@ -102,7 +102,14 @@ fun Catalog.buildWatchBundle(key: String): WatchBundle? {
             candidate.categories.any { it in current.categories }
     }
 
-    val upNext = nextEpisode ?: sameTopic.firstOrNull()
+    // Once a series ends (no next episode), "up next" should suggest a video outside that
+    // series rather than looping back to an earlier episode of the one just finished.
+    val currentSeriesId = key.takeIf { it.startsWith("episode:") }?.split(":")?.getOrNull(1)
+    val fallback = sameTopic.firstOrNull {
+        currentSeriesId == null || !it.id.startsWith("episode:$currentSeriesId:")
+    }
+
+    val upNext = nextEpisode ?: fallback
     val related = sameTopic.filter { it.id != upNext?.id }.take(6)
 
     return WatchBundle(video = current, upNext = upNext, related = related)
