@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -108,6 +109,9 @@ fun WatchScreen(
             video.recap?.takeIf { it.isNotBlank() }?.let { recap ->
                 CollapsibleSection(title = "Recap") { Recap(recap) }
             }
+            if (video.takeaways.isEmpty() && video.recap.isNullOrBlank()) {
+                NoNotesHint()
+            }
 
             NotesSection(videoId = video.id)
 
@@ -181,6 +185,29 @@ private fun CollapsibleSection(title: String, content: @Composable () -> Unit) {
                 content()
             }
         }
+    }
+}
+
+/** A calm, un-boxed note shown when a lecture has no takeaways or recap. Deliberately
+ *  unlike the CollapsibleSection cards so it isn't mistaken for a tappable box. */
+@Composable
+private fun NoNotesHint() {
+    val brand = Brand.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            tint = brand.muted,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = "No key takeaways or recap for this lecture.",
+            color = brand.muted,
+            fontSize = 14.sp,
+        )
     }
 }
 
