@@ -45,12 +45,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.improvingmuslim.android.data.CatalogRepository
+import com.improvingmuslim.android.data.StreakStore
 import com.improvingmuslim.android.model.buildWatchBundle
 import com.improvingmuslim.android.model.categoryLabel
 import com.improvingmuslim.android.ui.components.TopHeader
 import com.improvingmuslim.android.ui.history.HistoryScreen
 import com.improvingmuslim.android.ui.home.HomeScreen
 import com.improvingmuslim.android.ui.series.SeriesScreen
+import com.improvingmuslim.android.ui.streak.StreakPanel
 import com.improvingmuslim.android.ui.theme.Brand
 import com.improvingmuslim.android.ui.watch.WatchScreen
 
@@ -209,12 +211,21 @@ fun RootScreen() {
 @Composable
 private fun HeaderBar() {
     val brand = Brand.colors
+    val context = LocalContext.current
+    // Re-read whenever the streak changes (e.g. playback records time), so the flame count
+    // stays live even while the header is shown over the Watch screen.
+    val revision = StreakStore.revision
+    val streak = remember(revision) { StreakStore.read(context) }
+    var showStreak by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxWidth().background(brand.surface).statusBarsPadding(),
     ) {
-        TopHeader()
+        TopHeader(streakCount = streak.current, onStreak = { showStreak = true })
         HorizontalDivider(color = brand.line)
     }
+
+    if (showStreak) StreakPanel(streak = streak, onDismiss = { showStreak = false })
 }
 
 @Composable

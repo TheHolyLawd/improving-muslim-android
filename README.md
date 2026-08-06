@@ -32,6 +32,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Series episode list](#series-episode-list)
   - [Continue learning (resume)](#continue-learning-resume)
   - [Watch history](#watch-history)
+  - [Daily streak](#daily-streak)
   - [Watch screen & video playback](#watch-screen--video-playback)
   - [Lecture notes](#lecture-notes)
   - [Theming (light/dark)](#theming-lightdark)
@@ -123,6 +124,7 @@ app/src/main/java/com/improvingmuslim/android/
 ├── data/
 │   ├── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
 │   ├── NotesStore.kt            Per-lecture notes saved locally (SharedPreferences)
+│   ├── StreakStore.kt           Daily learning streak (playback time toward a goal)
 │   └── WatchProgressStore.kt    Per-video playback progress (resume points)
 ├── model/
 │   ├── Catalog.kt               Feed data models, HomeFeedItem, and feed helpers
@@ -147,6 +149,8 @@ app/src/main/java/com/improvingmuslim/android/
     │   └── HistoryScreen.kt     Watch history list (resume, remove, clear)
     ├── series/
     │   └── SeriesScreen.kt      Series episode list (tap an episode to watch)
+    ├── streak/
+    │   └── StreakPanel.kt       Daily-streak panel (progress, current/best, heatmap)
     └── watch/
         ├── WatchScreen.kt       Watch layout: details, notes, up-next, more-like-this
         ├── VideoPlayer.kt       ExoPlayer + custom controls (captions/speed/fullscreen)
@@ -232,9 +236,10 @@ Each subsection notes **what it does** and **where it lives**.
 ### Top header
 
 - **What:** Sticky bar with the logo + wordmark on the left and, on the right, **Search**, a
-  **Streak** flame with its score, and the **menu**. Shown on **every screen** (all tabs and
-  the Watch screen) — see [Navigation](#architecture). Search, streak, and menu are **visual
-  placeholders** until their features exist (`onSearch/onStreak/onMenu` are wired but no-op).
+  **Streak** flame with its live day count, and the **menu**. Shown on **every screen** (all
+  tabs and the Watch screen) — see [Navigation](#architecture). The streak flame is
+  functional (opens the [Daily streak](#daily-streak) panel); **Search** and **menu** remain
+  visual placeholders until their features exist (`onSearch/onMenu` are wired but no-op).
 - **Where:** [`TopHeader`](app/src/main/java/com/improvingmuslim/android/ui/components/TopHeader.kt),
   hosted by `RootScreen`'s `HeaderBar`.
 
@@ -292,6 +297,23 @@ Each subsection notes **what it does** and **where it lives**.
   Reads/removes/clears via [`WatchProgressStore`](app/src/main/java/com/improvingmuslim/android/data/WatchProgressStore.kt)
   and resolves each record to its catalog video (records whose video is no longer in the feed
   are skipped).
+
+### Daily streak
+
+- **What:** The header flame tracks a daily learning streak. **Actual lecture playback** time
+  (not seeking) counts toward a **15-minute daily goal**; reaching it extends the streak, and
+  a missed day resets it. The flame shows the current day count (live). Tapping it opens a
+  panel with today's progress (minutes watched / left), **current** and **best** streaks, and
+  a month **heatmap** (filled = goal met). Mirrors the website's core streak.
+- **Where:** [`StreakStore`](app/src/main/java/com/improvingmuslim/android/data/StreakStore.kt)
+  holds the streak state (SharedPreferences) and the day-chaining/goal logic;
+  [`VideoPlayer`](app/src/main/java/com/improvingmuslim/android/ui/watch/VideoPlayer.kt)
+  records ~5s of real playback at a time; the header (`RootScreen`) reads the count and opens
+  [`StreakPanel`](app/src/main/java/com/improvingmuslim/android/ui/streak/StreakPanel.kt).
+  The store exposes a Compose `revision` so the flame updates live as time is recorded.
+- **Note:** local-only for now. The website's streak **freezes**, **ranks**, community
+  **leaderboard** (needs accounts), and separate **Qur'an streak** are intentionally not
+  ported yet.
 
 ### Watch screen & video playback
 
@@ -385,7 +407,8 @@ Rough order, following the iOS app's slices:
 6. Search.
 7. Explore, Pathways, Speakers, Profile screens.
 8. Account sign-in (in Profile) + cloud sync.
-9. ~~Resume playback position~~ and ~~watch history~~ done (home "Continue learning" card +
-   seek-on-open; the "View history" screen with resume/remove/clear). Still to come: saved
-   items, streaks (unlocks "Hide watched" and a real streak score).
+9. ~~Resume playback position~~, ~~watch history~~, and ~~the daily learning streak~~ done
+   (Continue learning card + seek-on-open; the History screen; the header streak flame + panel).
+   Still to come: saved items, "Hide watched", and streak extras (freezes, ranks, the
+   community leaderboard, and the separate Qur'an streak — the leaderboard needs accounts).
 10. Offline downloads, then release hardening.

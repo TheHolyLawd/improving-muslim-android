@@ -51,6 +51,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.improvingmuslim.android.data.StreakStore
 import com.improvingmuslim.android.data.WatchProgressStore
 import com.improvingmuslim.android.model.PlayableVideo
 import com.improvingmuslim.android.model.formatDuration
@@ -141,6 +142,9 @@ fun VideoPlayer(
             if (!scrubbing) position = player.currentPosition
             if (tick % 10 == 0) {
                 WatchProgressStore.save(context, video.id, player.currentPosition, player.duration, ended = false)
+                // Every ~5s of *actual* playback (the loop only runs while playing, so
+                // seeking ahead adds nothing) counts toward the daily learning streak.
+                if (tick > 0) StreakStore.recordSeconds(context, 5)
             }
             tick++
             delay(500)
