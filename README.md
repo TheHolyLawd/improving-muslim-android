@@ -258,7 +258,9 @@ Each subsection notes **what it does** and **where it lives**.
 - **What:** Opening a video shows the Watch screen (below the shared header). It plays the
   video and shows, in order: title, meta (speaker · topic · date), description, **Key
   Takeaways** and **Recap** in collapsed dropdowns (tap to expand — only shown when the
-  lecture has them), an **Up next** card, and a **More like this** list. "Up next" is the
+  lecture has them; when it has neither, a quiet un-boxed "No key takeaways or recap for
+  this lecture." note appears instead so the absence is clear, not a broken box), an **Up
+  next** card, and a **More like this** list. "Up next" is the
   next episode while a series still has one; once the series ends (or for a standalone) it
   falls back to a same-topic video from a **different** series. "More like this" is other
   same-topic videos. Tapping either navigates on (chained). The player is real
