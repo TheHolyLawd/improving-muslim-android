@@ -315,7 +315,4 @@ private fun speedLabel(speed: Float): String {
     return "${text}×"
 }
 
-private fun formatMs(ms: Long): String {
-    if (ms <= 0L) return "0:00"
-    return formatDuration((ms / 1000).toInt())
-}
+private fun formatMs(ms: Long): String = formatDuration((ms / 1000).coerceAtLeast(0).toInt())

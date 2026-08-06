@@ -29,9 +29,7 @@ sealed interface HomeUiState {
         val seriesCount: Int,
         val videoCount: Int,
         val items: List<HomeFeedItem>,
-    ) : HomeUiState {
-        val selectedTopicName: String? = topics.firstOrNull { it.id == selectedTopicId }?.name
-    }
+    ) : HomeUiState
 
     data class Error(val message: String) : HomeUiState
 }

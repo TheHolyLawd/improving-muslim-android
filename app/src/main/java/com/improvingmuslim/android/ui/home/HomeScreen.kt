@@ -127,7 +127,7 @@ private fun ReadyState(
                     when (item) {
                         is HomeFeedItem.SeriesItem -> onOpenSeries(item.series.id)
                         is HomeFeedItem.LectureItem ->
-                            item.toPlayableVideo()?.id?.let(onOpenVideo)
+                            item.lecture.toPlayableVideo()?.id?.let(onOpenVideo)
                     }
                 },
                 modifier = Modifier.padding(horizontal = 16.dp),

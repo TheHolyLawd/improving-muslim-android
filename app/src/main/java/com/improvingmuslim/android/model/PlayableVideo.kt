@@ -69,13 +69,6 @@ fun episodeToPlayableVideo(series: LectureSeries, episode: Episode): PlayableVid
     )
 }
 
-/** Maps a home-feed card to its playable video (series → its first available episode). */
-fun HomeFeedItem.toPlayableVideo(): PlayableVideo? = when (this) {
-    is HomeFeedItem.LectureItem -> lecture.toPlayableVideo()
-    is HomeFeedItem.SeriesItem ->
-        series.episodes.firstOrNull { it.isAvailable }?.let { episodeToPlayableVideo(series, it) }
-}
-
 /** Every playable video in the catalog (all available episodes + standalone lectures). */
 fun Catalog.allPlayable(): List<PlayableVideo> {
     val episodes = series.flatMap { s ->
