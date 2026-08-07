@@ -51,6 +51,7 @@ import com.improvingmuslim.android.model.categoryLabel
 import com.improvingmuslim.android.ui.components.TopHeader
 import com.improvingmuslim.android.ui.history.HistoryScreen
 import com.improvingmuslim.android.ui.home.HomeScreen
+import com.improvingmuslim.android.ui.search.SearchScreen
 import com.improvingmuslim.android.ui.series.SeriesScreen
 import com.improvingmuslim.android.ui.streak.StreakPanel
 import com.improvingmuslim.android.ui.theme.Brand
@@ -70,9 +71,23 @@ fun RootScreen() {
     var selectedTab by remember { mutableStateOf(Tab.HOME) }
     var seriesKey by remember { mutableStateOf<String?>(null) }
     var historyOpen by remember { mutableStateOf(false) }
+    var searchOpen by remember { mutableStateOf(false) }
     var watchKey by remember { mutableStateOf<String?>(null) }
     var fullscreen by remember { mutableStateOf(false) }
     val closeWatch = { watchKey = null; fullscreen = false }
+
+    // Search is opened from the header (available on every screen) and has its own top bar,
+    // so it replaces the whole surface rather than sitting under the shared header.
+    if (searchOpen) {
+        BackHandler { searchOpen = false }
+        SearchScreen(
+            onOpenVideo = { watchKey = it; searchOpen = false },
+            onOpenSeries = { seriesKey = it; searchOpen = false },
+            onBack = { searchOpen = false },
+            modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
+        )
+        return
+    }
 
     // The Watch screen is a full-screen surface (with the shared header) over the tabs.
     val bundle = watchKey?.let { key -> CatalogRepository.cached?.buildWatchBundle(key) }
@@ -111,7 +126,7 @@ fun RootScreen() {
                 .fillMaxSize()
                 .background(if (fullscreen) Color.Black else brand.background),
         ) {
-            if (!fullscreen) HeaderBar()
+            if (!fullscreen) HeaderBar(onSearch = { searchOpen = true })
             WatchScreen(
                 bundle = bundle,
                 onOpenVideo = { watchKey = it },
@@ -133,7 +148,7 @@ fun RootScreen() {
     if (historyOpen) {
         BackHandler { historyOpen = false }
         Column(modifier = Modifier.fillMaxSize().background(brand.background)) {
-            HeaderBar()
+            HeaderBar(onSearch = { searchOpen = true })
             HistoryScreen(
                 onOpenVideo = { watchKey = it },
                 onBack = { historyOpen = false },
@@ -150,7 +165,7 @@ fun RootScreen() {
     if (series != null && catalog != null) {
         BackHandler { seriesKey = null }
         Column(modifier = Modifier.fillMaxSize().background(brand.background)) {
-            HeaderBar()
+            HeaderBar(onSearch = { searchOpen = true })
             SeriesScreen(
                 series = series,
                 categoryLabel = catalog.categoryLabel("SERIES", series.categories),
@@ -164,7 +179,7 @@ fun RootScreen() {
 
     Scaffold(
         containerColor = brand.background,
-        topBar = { HeaderBar() },
+        topBar = { HeaderBar(onSearch = { searchOpen = true }) },
         bottomBar = {
             NavigationBar(containerColor = brand.surface) {
                 Tab.entries.forEach { tab ->
@@ -209,7 +224,7 @@ fun RootScreen() {
 
 /** The shared top header, padded below the status bar and coloured as one surface. */
 @Composable
-private fun HeaderBar() {
+private fun HeaderBar(onSearch: () -> Unit = {}) {
     val brand = Brand.colors
     val context = LocalContext.current
     // Re-read whenever the streak changes (e.g. playback records time), so the flame count
@@ -221,7 +236,7 @@ private fun HeaderBar() {
     Column(
         modifier = Modifier.fillMaxWidth().background(brand.surface).statusBarsPadding(),
     ) {
-        TopHeader(streakCount = streak.current, onStreak = { showStreak = true })
+        TopHeader(streakCount = streak.current, onStreak = { showStreak = true }, onSearch = onSearch)
         HorizontalDivider(color = brand.line)
     }
 

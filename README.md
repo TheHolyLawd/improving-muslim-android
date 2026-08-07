@@ -9,9 +9,8 @@ The app is deliberately native (Kotlin + Jetpack Compose), mirroring the iOS app
 of a real native client rather than a web wrapper. Where sensible, its structure and visual
 identity follow the iOS app so the two feel like the same product.
 
-> **Status:** early development. The Home screen is functional; several surfaces (search,
-> auth, the other bottom-nav tabs, playback) are intentional placeholders. See
-> [Roadmap](#roadmap).
+> **Status:** early development. The Home screen is functional; several surfaces (auth,
+> the other bottom-nav tabs) are intentional placeholders. See [Roadmap](#roadmap).
 
 ---
 
@@ -29,6 +28,7 @@ identity follow the iOS app so the two feel like the same product.
   - [Sorting & result count](#sorting--result-count)
   - [Top header](#top-header)
   - [Bottom navigation](#bottom-navigation)
+  - [Search](#search)
   - [Series episode list](#series-episode-list)
   - [Continue learning (resume)](#continue-learning-resume)
   - [Watch history](#watch-history)
@@ -128,6 +128,7 @@ app/src/main/java/com/improvingmuslim/android/
 │   └── WatchProgressStore.kt    Per-video playback progress (resume points)
 ├── model/
 │   ├── Catalog.kt               Feed data models, HomeFeedItem, and feed helpers
+│   ├── Search.kt                In-memory catalog search (scoring pipeline, synonyms)
 │   ├── PlayableVideo.kt         Flattens a card into a playable video (+ date formatting)
 │   └── LenientNullableStringSerializer.kt   Fault-tolerant string decoder (see Known issues)
 └── ui/
@@ -147,6 +148,8 @@ app/src/main/java/com/improvingmuslim/android/
     │   └── HomeViewModel.kt     Home state, filtering, sorting
     ├── history/
     │   └── HistoryScreen.kt     Watch history list (resume, remove, clear)
+    ├── search/
+    │   └── SearchScreen.kt      Full-screen search UI (as-you-type, results/related)
     ├── series/
     │   └── SeriesScreen.kt      Series episode list (tap an episode to watch)
     ├── streak/
@@ -237,9 +240,9 @@ Each subsection notes **what it does** and **where it lives**.
 
 - **What:** Sticky bar with the logo + wordmark on the left and, on the right, **Search**, a
   **Streak** flame with its live day count, and the **menu**. Shown on **every screen** (all
-  tabs and the Watch screen) — see [Navigation](#architecture). The streak flame is
-  functional (opens the [Daily streak](#daily-streak) panel); **Search** and **menu** remain
-  visual placeholders until their features exist (`onSearch/onMenu` are wired but no-op).
+  tabs and the Watch screen) — see [Navigation](#architecture). The streak flame opens the
+  [Daily streak](#daily-streak) panel and **Search** opens the [Search](#search) screen; the
+  **menu** remains a visual placeholder (`onMenu` is wired but no-op).
 - **Where:** [`TopHeader`](app/src/main/java/com/improvingmuslim/android/ui/components/TopHeader.kt),
   hosted by `RootScreen`'s `HeaderBar`.
 
@@ -250,6 +253,30 @@ Each subsection notes **what it does** and **where it lives**.
   placeholder.
 - **Where:** [`RootScreen`](app/src/main/java/com/improvingmuslim/android/ui/RootScreen.kt)
   owns the selected-tab state and the Material 3 `NavigationBar`.
+
+### Search
+
+- **What:** The header **Search** icon opens a full-screen search over the in-memory catalog
+  (~635 lectures + 24 series — no network, no server). As-you-type ranked results (debounced
+  ~150ms), split the website's way into honest **results** (matched a title/speaker/topic) and
+  a **Related** group (only matched buried text like a description or recap). Tapping a result
+  opens the video or the series list. Empty and no-results states guide the query.
+- **Why a real scorer, not `contains()`:** the matching mirrors the website's `home-search.js`
+  as a pipeline — normalize → tokenize → drop stop-words → stem → **expand synonyms /
+  transliterations** → score across weighted fields → sort. The synonym groups are the piece
+  that matters most for Islamic content: *namaz*, *solah*, *salat*, and *prayer* all find
+  *salah*; *koran* finds *quran*. Fields are weighted (title 10 › speaker 6 › topic 5 › buried
+  text 2) so a title hit outranks the same word buried in one episode's recap, with an
+  exact-phrase bonus and a coverage requirement (at least half the query words must hit).
+- **Depth:** searches titles, speakers, topics, descriptions, recaps, takeaways, and a
+  series' episode titles/recaps — **not** captions/transcripts (deliberately out of scope).
+- **Where:** engine in [`Search.kt`](app/src/main/java/com/improvingmuslim/android/model/Search.kt)
+  (`Catalog.search()` → `SearchOutcome`), covered by
+  [`SearchTest`](app/src/test/java/com/improvingmuslim/android/model/SearchTest.kt); UI in
+  [`SearchScreen`](app/src/main/java/com/improvingmuslim/android/ui/search/SearchScreen.kt),
+  hosted as a full-surface overlay by `RootScreen` (opened from the header, dismissed with Back).
+- **Not yet (Tier 2):** fuzzy typo tolerance (*ramadna → ramadan*), autocomplete suggestions,
+  curated popular searches, and match highlighting.
 
 ### Series episode list
 
@@ -404,7 +431,8 @@ Rough order, following the iOS app's slices:
 3. ~~Custom video controls: standalone captions / speed / fullscreen (no settings gear).~~ Done.
 4. ~~Notes editor on the Watch screen (write/format/save per lecture).~~ Done (local; cloud sync later).
 5. ~~Series episode-list screen (tap a series → choose an episode).~~ Done.
-6. Search.
+6. ~~Search.~~ Done (Tier 1: field-weighted in-memory scorer + synonym/transliteration
+   groups + results/related split; fuzzy typos, autocomplete, and highlighting are Tier 2).
 7. Explore, Pathways, Speakers, Profile screens.
 8. Account sign-in (in Profile) + cloud sync.
 9. ~~Resume playback position~~, ~~watch history~~, and ~~the daily learning streak~~ done
