@@ -61,6 +61,20 @@ class SearchTest {
         assertTrue(out.isEmpty)
     }
 
+    @Test fun oneLetterTypoStillMatchesTitle() {
+        val c = catalog(lecture("1", "Preparing for Ramadan"))
+        // transposition ("ramadna"), dropped letter ("ramadn"), and substitution ("ramadam").
+        assertTrue("transpose", titles(c.search("ramadna").results).contains("Preparing for Ramadan"))
+        assertTrue("drop", titles(c.search("ramadn").results).contains("Preparing for Ramadan"))
+        assertTrue("sub", titles(c.search("ramadam").results).contains("Preparing for Ramadan"))
+    }
+
+    @Test fun twoTyposDoNotMatch() {
+        // "astrnmy" is >1 edit from anything here — fuzzy must not turn noise into a match.
+        val out = catalog(lecture("1", "The Story of Salah")).search("astrnmy")
+        assertTrue(out.isEmpty)
+    }
+
     @Test fun rankingPutsTitleHitAboveSpeakerHit() {
         // Same literal word in both (so both get the phrase bonus); the title field's higher
         // weight must still rank the title hit first.

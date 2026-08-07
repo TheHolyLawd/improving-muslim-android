@@ -106,10 +106,37 @@ private fun tokenVariants(token: String): Set<String> {
 
 private class Field(val text: String, val weight: Int, val headline: Boolean)
 
-/** Strength of the best match for a token in one field: exact word (1.0) > substring (0.75). */
-private fun tokenStrength(variants: Set<String>, fieldText: String, fieldWords: Set<String>): Double {
+/** True if [a] and [b] are at most one edit apart (one substitution, insertion, or deletion).
+ *  Cheap O(n) check — no full edit-distance matrix — used for typo tolerance. */
+private fun within1Edit(a: String, b: String): Boolean {
+    if (a == b) return true
+    val (short, long) = if (a.length <= b.length) a to b else b to a
+    when (long.length - short.length) {
+        0 -> { // one substitution, or one adjacent transposition ("shiekh" ~ "sheikh")
+            val diffs = short.indices.filter { short[it] != long[it] }
+            if (diffs.size == 1) return true
+            return diffs.size == 2 && diffs[1] == diffs[0] + 1 &&
+                short[diffs[0]] == long[diffs[1]] && short[diffs[1]] == long[diffs[0]]
+        }
+        1 -> { // one insertion/deletion: long is short with one extra char
+            var i = 0; var j = 0; var skipped = false
+            while (i < short.length && j < long.length) {
+                if (short[i] == long[j]) { i++; j++ }
+                else { if (skipped) return false; skipped = true; j++ }
+            }
+            return true
+        }
+        else -> return false
+    }
+}
+
+/** Strength of the best match for a token in one field: exact word (1.0) > substring (0.75) >
+ *  one-typo fuzzy word (0.5). Fuzzy only when [fuzzy] (headline fields), so a typo in a title/
+ *  speaker/topic still lands but the big buried-text field stays exact to avoid noise + cost. */
+private fun tokenStrength(variants: Set<String>, fieldText: String, fieldWords: Set<String>, fuzzy: Boolean): Double {
     if (variants.any { it in fieldWords }) return 1.0
     if (variants.any { it.length >= 4 && fieldText.contains(it) }) return 0.75
+    if (fuzzy && variants.any { v -> v.length >= 4 && fieldWords.any { within1Edit(v, it) } }) return 0.5
     return 0.0
 }
 
@@ -176,9 +203,9 @@ private fun assess(item: HomeFeedItem, query: String, topicName: Map<String, Str
         var best = 0.0
         var strongHit = false
         fields.forEachIndexed { i, field ->
-            val strength = tokenStrength(variants, field.text, fieldWords[i])
+            val strength = tokenStrength(variants, field.text, fieldWords[i], fuzzy = field.headline)
             if (strength * field.weight > best) best = strength * field.weight
-            if (strength >= 0.75 && field.headline) strongHit = true
+            if (strength >= 0.5 && field.headline) strongHit = true
         }
         if (best > 0) matched++
         if (strongHit) strongTokens++

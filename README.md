@@ -122,7 +122,7 @@ Watch screen reads it to compute "up next" / "more like this" without re-fetchin
 app/src/main/java/com/improvingmuslim/android/
 ├── MainActivity.kt              Activity entry point; sets the Compose content + theme
 ├── data/
-│   ├── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp)
+│   ├── CatalogRepository.kt     Fetches + decodes the catalog feed (OkHttp), bundled fallback
 │   ├── NotesStore.kt            Per-lecture notes saved locally (SharedPreferences)
 │   ├── StreakStore.kt           Daily learning streak (playback time toward a goal)
 │   └── WatchProgressStore.kt    Per-video playback progress (resume points)
@@ -200,8 +200,15 @@ Each subsection notes **what it does** and **where it lives**.
 
 - **What:** On launch, fetches `catalog.json`. Shows a loading spinner, then the feed, or an
   error state with a **Try again** button if the request fails.
+- **Offline fallback:** if the live fetch fails (device offline, or the website is down), the
+  app falls back to a build-time snapshot of the catalog bundled at
+  [`assets/catalog.json`](app/src/main/assets/catalog.json), so Home, search, and the rest
+  keep working. The live feed is always preferred for freshness; the snapshot is only a
+  safety net. Refresh it by re-running the website's `scripts/generate-mobile-api.js` and
+  copying the result over the bundled file.
 - **Where:** [`CatalogRepository`](app/src/main/java/com/improvingmuslim/android/data/CatalogRepository.kt)
-  performs the request/decode on `Dispatchers.IO`;
+  performs the request/decode on `Dispatchers.IO` (and reads the bundled asset on failure —
+  `MainActivity` hands it an app context for that);
   [`HomeViewModel`](app/src/main/java/com/improvingmuslim/android/ui/home/HomeViewModel.kt)
   exposes `HomeUiState.{Loading, Ready, Error}`.
 
@@ -260,7 +267,9 @@ Each subsection notes **what it does** and **where it lives**.
   (~635 lectures + 24 series — no network, no server). As-you-type ranked results (debounced
   ~150ms), split the website's way into honest **results** (matched a title/speaker/topic) and
   a **Related** group (only matched buried text like a description or recap). Tapping a result
-  opens the video or the series list. Empty and no-results states guide the query.
+  opens the video or the series list. Matched query words are **highlighted** in the title and
+  speaker; the empty state (before typing) shows a few tap-to-run **popular searches**, and a
+  no-results state guides the query.
 - **Why a real scorer, not `contains()`:** the matching mirrors the website's `home-search.js`
   as a pipeline — normalize → tokenize → drop stop-words → stem → **expand synonyms /
   transliterations** → score across weighted fields → sort. The synonym groups are the piece
@@ -268,6 +277,10 @@ Each subsection notes **what it does** and **where it lives**.
   *salah*; *koran* finds *quran*. Fields are weighted (title 10 › speaker 6 › topic 5 › buried
   text 2) so a title hit outranks the same word buried in one episode's recap, with an
   exact-phrase bonus and a coverage requirement (at least half the query words must hit).
+- **Typo tolerance:** a headline word within **one edit** of a query word still matches (one
+  substitution/insertion/deletion, plus adjacent transpositions — so *muhamad → Muhammad*,
+  *shiekh → sheikh*), scored below exact/substring hits. Fuzzy runs only on the title/speaker/
+  topic fields, keeping it fast and avoiding false positives from the large buried-text field.
 - **Depth:** searches titles, speakers, topics, descriptions, recaps, takeaways, and a
   series' episode titles/recaps — **not** captions/transcripts (deliberately out of scope).
 - **Where:** engine in [`Search.kt`](app/src/main/java/com/improvingmuslim/android/model/Search.kt)
@@ -275,8 +288,8 @@ Each subsection notes **what it does** and **where it lives**.
   [`SearchTest`](app/src/test/java/com/improvingmuslim/android/model/SearchTest.kt); UI in
   [`SearchScreen`](app/src/main/java/com/improvingmuslim/android/ui/search/SearchScreen.kt),
   hosted as a full-surface overlay by `RootScreen` (opened from the header, dismissed with Back).
-- **Not yet (Tier 2):** fuzzy typo tolerance (*ramadna → ramadan*), autocomplete suggestions,
-  curated popular searches, and match highlighting.
+- **Not yet:** a separate autocomplete/suggestions dropdown — skipped as redundant with the
+  as-you-type results already shown. Add it if the empty-state popular searches prove too coarse.
 
 ### Series episode list
 
@@ -431,8 +444,10 @@ Rough order, following the iOS app's slices:
 3. ~~Custom video controls: standalone captions / speed / fullscreen (no settings gear).~~ Done.
 4. ~~Notes editor on the Watch screen (write/format/save per lecture).~~ Done (local; cloud sync later).
 5. ~~Series episode-list screen (tap a series → choose an episode).~~ Done.
-6. ~~Search.~~ Done (Tier 1: field-weighted in-memory scorer + synonym/transliteration
-   groups + results/related split; fuzzy typos, autocomplete, and highlighting are Tier 2).
+6. ~~Search.~~ Done. Field-weighted in-memory scorer + synonym/transliteration groups +
+   results/related split (Tier 1), plus one-edit fuzzy typo tolerance, match highlighting, and
+   an empty-state of popular searches (Tier 2). A separate autocomplete dropdown was skipped as
+   redundant with the as-you-type results.
 7. Explore, Pathways, Speakers, Profile screens.
 8. Account sign-in (in Profile) + cloud sync.
 9. ~~Resume playback position~~, ~~watch history~~, and ~~the daily learning streak~~ done

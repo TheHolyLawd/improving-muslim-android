@@ -35,13 +35,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.LaunchedEffect
 import com.improvingmuslim.android.data.CatalogRepository
 import com.improvingmuslim.android.model.HomeFeedItem
@@ -121,7 +129,7 @@ fun SearchScreen(
 
         when {
             debounced.isBlank() ->
-                Hint("Search across lectures, series, speakers, and topics.")
+                PopularSearches(onPick = { query = it })
             outcome.isEmpty ->
                 Hint("No results for “$debounced”. Try a different word or spelling.")
             else -> LazyColumn(
@@ -129,7 +137,7 @@ fun SearchScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 28.dp),
             ) {
                 items(outcome.results, key = { "r:" + it.id }) { item ->
-                    ResultRow(item = item, onClick = { open(item) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                    ResultRow(item = item, query = debounced, onClick = { open(item) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
                 }
                 if (outcome.related.isNotEmpty()) {
                     item {
@@ -142,7 +150,7 @@ fun SearchScreen(
                         )
                     }
                     items(outcome.related, key = { "x:" + it.id }) { item ->
-                        ResultRow(item = item, onClick = { open(item) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                        ResultRow(item = item, query = debounced, onClick = { open(item) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
                     }
                 }
             }
@@ -151,7 +159,7 @@ fun SearchScreen(
 }
 
 @Composable
-private fun ResultRow(item: HomeFeedItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ResultRow(item: HomeFeedItem, query: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val brand = Brand.colors
     Row(
         modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
@@ -177,8 +185,66 @@ private fun ResultRow(item: HomeFeedItem, onClick: () -> Unit, modifier: Modifie
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(item.categoryLabel, color = brand.rose, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(item.title, color = brand.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(item.speaker, color = brand.muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(highlight(item.title, query, brand.accent), color = brand.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(highlight(item.speaker, query, brand.accent), color = brand.muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** Bolds the query's words wherever they literally appear in [text] (case-insensitive). A
+ *  best-effort visual cue — synonym/fuzzy matches have no literal substring, so they stay plain. */
+private fun highlight(text: String, query: String, color: Color): AnnotatedString {
+    val words = query.lowercase().split(Regex("[^a-z0-9']+")).filter { it.length >= 2 }
+    if (words.isEmpty()) return AnnotatedString(text)
+    val lower = text.lowercase()
+    val mark = BooleanArray(text.length)
+    for (w in words) {
+        var from = lower.indexOf(w)
+        while (from >= 0) {
+            for (k in from until from + w.length) mark[k] = true
+            from = lower.indexOf(w, from + w.length)
+        }
+    }
+    if (mark.none { it }) return AnnotatedString(text)
+    return buildAnnotatedString {
+        var k = 0
+        while (k < text.length) {
+            val start = k
+            val on = mark[k]
+            while (k < text.length && mark[k] == on) k++
+            val chunk = text.substring(start, k)
+            if (on) withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = color)) { append(chunk) }
+            else append(chunk)
+        }
+    }
+}
+
+private val POPULAR = listOf("Salah", "Ramadan", "Seerah", "Dua", "Patience", "Quran", "Hajj", "Marriage")
+
+/** Empty-state before the user types: a few tap-to-run popular searches. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PopularSearches(onPick: (String) -> Unit) {
+    val brand = Brand.colors
+    Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+        Text("Popular searches", color = brand.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            POPULAR.forEach { term ->
+                Text(
+                    text = term,
+                    color = brand.ink,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .border(1.dp, brand.line, RoundedCornerShape(20.dp))
+                        .clickable { onPick(term) }
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }
